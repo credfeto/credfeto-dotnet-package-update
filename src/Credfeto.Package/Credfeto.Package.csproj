@@ -22,7 +22,7 @@
     <IlcGenerateStackTraceData>false</IlcGenerateStackTraceData>
     <IlcOptimizationPreference>Size</IlcOptimizationPreference>
     <ImplicitUsings>disable</ImplicitUsings>
-    <IncludeSymbols>true</IncludeSymbols>
+    <IncludeSymbols>false</IncludeSymbols>
     <IsPackable>true</IsPackable>
     <IsPublishable>false</IsPublishable>
     <IsTrimmable>true</IsTrimmable>
@@ -43,7 +43,6 @@
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/credfeto/UpdatePackages</RepositoryUrl>
     <RunAOTCompilation>false</RunAOTCompilation>
-    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <TargetFrameworks>net9.0;net10.0</TargetFrameworks>
     <TieredCompilation>true</TieredCompilation>
     <TieredPGO>true</TieredPGO>
