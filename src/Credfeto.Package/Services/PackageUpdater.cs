@@ -223,6 +223,8 @@ public sealed class PackageUpdater : IPackageUpdater
         return this._projectLoader.LoadAsync(path: fileName, cancellationToken: cancellationToken).AsTask();
     }
 
+
+
     private static IReadOnlyList<string> FindProjects(string folder)
     {
         return

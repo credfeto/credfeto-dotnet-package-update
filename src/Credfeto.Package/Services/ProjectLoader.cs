@@ -50,4 +50,9 @@ public sealed class ProjectLoader : IProjectLoader
             return null;
         }
     }
+
+    public void Reset()
+    {
+        this._loadedProjects.Clear();
+    }
 }

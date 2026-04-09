@@ -10,6 +10,8 @@ public interface IProject
 
     bool Changed { get; }
 
+    bool ReloadAsync();
+
     bool UpdatePackage(PackageVersion package);
 
     bool Save();

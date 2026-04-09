@@ -62,6 +62,8 @@ internal sealed class Project : IProject
         using (XmlWriter writer = XmlWriter.Create(outputFileName: this.FileName, settings: WriterSettings))
         {
             this._doc.Save(writer);
+            // explicitly mark as not saved
+            this.Changed = false;
 
             return true;
         }
