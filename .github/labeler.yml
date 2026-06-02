@@ -16,6 +16,8 @@
  - any: [ 'src/$Credfeto.Package.Test/**/*' ]
 "credfeto-package-update":
  - any: [ 'src/$Credfeto.Package.Update/**/*' ]
+"credfeto-package-update-tests":
+ - any: [ 'src/$Credfeto.Package.Update.Tests/**/*' ]
 "dotnet":
  - any: [ 'src/**/*.csproj' ]
 "Editorconfig":
