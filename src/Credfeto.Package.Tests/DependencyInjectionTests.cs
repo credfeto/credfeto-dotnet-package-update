@@ -2,7 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
-namespace Credfeto.Package.Test;
+namespace Credfeto.Package.Tests;
 
 public sealed class DependencyInjectionTests : DependencyInjectionTestsBase
 {

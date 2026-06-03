@@ -6,7 +6,7 @@
     <File Path="../.globalconfig" />
     <File Path="global.json" />
   </Folder>
-  <Project Path="Credfeto.Package.Test/Credfeto.Package.Test.csproj" />
+  <Project Path="Credfeto.Package.Tests/Credfeto.Package.Tests.csproj" />
   <Project Path="Credfeto.Package.Update/Credfeto.Package.Update.csproj" />
   <Project Path="Credfeto.Package.Update.Tests/Credfeto.Package.Update.Tests.csproj" />
   <Project Path="Credfeto.Package/Credfeto.Package.csproj" />
