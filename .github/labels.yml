@@ -42,9 +42,9 @@
    color: "96f7d2"
    description: "Changes in Credfeto.Package project"
 
- - name: "credfeto-package-test"
-   color: "96f7d2"
-   description: "Changes in Credfeto.Package.Test project"
+ - name: "credfeto-package-tests"
+   color: "0e8a16"
+   description: "Changes in Credfeto.Package.Tests project"
 
  - name: "credfeto-package-update"
    color: "96f7d2"

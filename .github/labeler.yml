@@ -12,8 +12,8 @@
  - any: [ 'src/**/*.json', '!src/global.json' ]
 "credfeto-package":
  - any: [ 'src/$Credfeto.Package/**/*' ]
-"credfeto-package-test":
- - any: [ 'src/$Credfeto.Package.Test/**/*' ]
+"credfeto-package-tests":
+ - any: [ 'src/$Credfeto.Package.Tests/**/*' ]
 "credfeto-package-update":
  - any: [ 'src/$Credfeto.Package.Update/**/*' ]
 "credfeto-package-update-tests":
