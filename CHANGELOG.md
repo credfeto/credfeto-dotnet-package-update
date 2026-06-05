@@ -10,6 +10,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Suppress NuGet.Protocol 6.14.0 low severity vulnerability GHSA-g4vj-cjjj-v7hg pending package update
 ### Added
 - Unit tests for Credfeto.Package.Update to achieve 100% code coverage
+- Add unit tests for Credfeto.Package to increase code coverage to 100%
 ### Fixed
 - Remove tracked JetBrains IDE files (.idea) that were committed despite being gitignored
 - Add missing YAML document start marker to GitVersion.yml for ansible-lint compliance
