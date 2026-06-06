@@ -14,6 +14,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 ### Fixed
 - Remove tracked JetBrains IDE files (.idea) that were committed despite being gitignored
 - Add missing YAML document start marker to GitVersion.yml for ansible-lint compliance
+- Fixed yamllint failures in .github/labeler.yml and .github/labels.yml
 ### Changed
 - Updated DotNet SDK to 10.0.300
 - Renamed Credfeto.Package.Test to Credfeto.Package.Tests to follow the .Tests naming convention
