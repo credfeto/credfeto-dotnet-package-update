@@ -1,3 +1,4 @@
+--- # Greetings
 name: Greetings
 
 on: [pull_request, issues]
@@ -6,8 +7,8 @@ jobs:
   greeting:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/first-interaction@v3.1.0
-      with:
-        repo-token: ${{ secrets.GITHUB_TOKEN }}
-        issue-message: 'Your first issue!'
-        pr-message: 'Your first Pull Request!'
+      - uses: actions/first-interaction@v3.1.0
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          issue_message: "Your first issue!"
+          pr_message: "Your first Pull Request!"
