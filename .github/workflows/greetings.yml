@@ -3,9 +3,14 @@ name: Greetings
 
 on: [pull_request, issues]
 
+permissions:
+  issues: write
+  pull-requests: write
+
 jobs:
   greeting:
     runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'issues' || !startsWith(github.head_ref, 'dependabot/') }}
     steps:
       - uses: actions/first-interaction@v3.1.0
         with:
