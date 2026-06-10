@@ -18,6 +18,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 ### Changed
 - Updated DotNet SDK to 10.0.300
 - Renamed Credfeto.Package.Test to Credfeto.Package.Tests to follow the .Tests naming convention
+- SDK - Updated DotNet SDK to 10.0.301
 ### Deprecated
 ### Removed
 ### Deployment Changes
