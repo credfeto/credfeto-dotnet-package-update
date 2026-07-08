@@ -17,15 +17,6 @@ public sealed class PackageRegistry : IPackageRegistry
 {
     private const bool INCLUDE_UNLISTED_PACKAGES = false;
 
-    private static readonly SearchFilter SearchFilter = new(
-        includePrerelease: false,
-        filter: SearchFilterType.IsLatestVersion
-    )
-    {
-        IncludeDelisted = INCLUDE_UNLISTED_PACKAGES,
-        OrderBy = SearchOrderBy.Id,
-    };
-
     private readonly ILogger<PackageRegistry> _logger;
 
     public PackageRegistry(ILogger<PackageRegistry> logger)
@@ -77,22 +68,24 @@ public sealed class PackageRegistry : IPackageRegistry
     {
         SourceRepository sourceRepository = new(source: packageSource, [.. Repository.Provider.GetCoreV3()]);
 
-        PackageSearchResource searcher = await sourceRepository.GetResourceAsync<PackageSearchResource>(
+        PackageMetadataResource metadataResource = await sourceRepository.GetResourceAsync<PackageMetadataResource>(
             cancellationToken
         );
-        IEnumerable<IPackageSearchMetadata> result = await searcher.SearchAsync(
-            searchTerm: packageId,
-            filters: SearchFilter,
-            skip: 0,
-            take: int.MaxValue,
+
+        using SourceCacheContext sourceCacheContext = new();
+
+        IEnumerable<IPackageSearchMetadata> result = await metadataResource.GetMetadataAsync(
+            packageId: packageId,
+            includePrerelease: false,
+            includeUnlisted: INCLUDE_UNLISTED_PACKAGES,
+            sourceCacheContext: sourceCacheContext,
             log: NullLogger.Instance,
-            cancellationToken: cancellationToken
+            token: cancellationToken
         );
 
         foreach (
             PackageVersion packageVersion in result
                 .Select(entry => entry.Identity)
-                .Where(identity => StringComparer.OrdinalIgnoreCase.Equals(x: packageId, y: identity.Id))
                 .Select(identity => new PackageVersion(packageId: identity.Id, version: identity.Version))
                 .Where(p => !p.Version.IsPrerelease && !IsBannedPackage(p))
         )
