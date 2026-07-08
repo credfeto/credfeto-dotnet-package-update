@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Credfeto.Package.Update;
 
-internal static class ApplicationSetup
+public static class ApplicationSetup
 {
     public static IServiceProvider Setup(bool warningsAsErrors)
     {
