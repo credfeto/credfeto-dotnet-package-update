@@ -67,11 +67,6 @@
     <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-447r-wph3-92pm" />
   </ItemGroup>
   <ItemGroup>
-    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
-      <_Parameter1>Credfeto.Package.Update.Tests</_Parameter1>
-    </AssemblyAttribute>
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\Credfeto.Package\Credfeto.Package.csproj" />
   </ItemGroup>
   <ItemGroup>
