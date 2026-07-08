@@ -174,7 +174,12 @@ internal sealed class Project : IProject
                 continue;
             }
 
-            yield return new(packageId: packageId, new(version));
+            if (!NuGetVersion.TryParse(value: version, out NuGetVersion? parsedVersion))
+            {
+                continue;
+            }
+
+            yield return new(packageId: packageId, parsedVersion);
         }
     }
 
@@ -187,9 +192,9 @@ internal sealed class Project : IProject
 
         IReadOnlyList<string> sdk = project.GetAttribute("Sdk").Split("/");
 
-        if (sdk.Count == 2)
+        if (sdk.Count == 2 && NuGetVersion.TryParse(value: sdk[1], out NuGetVersion? parsedVersion))
         {
-            yield return new(sdk[0], new(sdk[1]));
+            yield return new(sdk[0], parsedVersion);
         }
     }
 }
