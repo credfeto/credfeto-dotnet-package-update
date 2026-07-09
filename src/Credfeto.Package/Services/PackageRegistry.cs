@@ -162,19 +162,19 @@ public sealed class PackageRegistry : IPackageRegistry
             [
                 .. outcomes.Where(o => o.Failure is null).Select(o => o.Source.Name),
             ];
+            string succeededSourcesMessage =
+                succeededSources.Count == 0 ? "(none)" : string.Join(separator: ", ", succeededSources);
 
             this._logger.PackageSourcesFailed(
                 failedCount: failedSources.Count,
                 sourceCount: sources.Count,
                 packageId: packageId,
                 failedSources: string.Join(separator: ", ", failedSources),
-                succeededSources: succeededSources.Count == 0
-                    ? "(none)"
-                    : string.Join(separator: ", ", succeededSources)
+                succeededSources: succeededSourcesMessage
             );
 
             throw new UpdateFailedException(
-                $"{failedSources.Count} of {sources.Count} package source(s) failed while looking up {packageId}: {string.Join(separator: ", ", failedSources)}",
+                $"{failedSources.Count} of {sources.Count} package source(s) failed while looking up {packageId}: {string.Join(separator: ", ", failedSources)}. Succeeded: {succeededSourcesMessage}",
                 new AggregateException(failures.OfType<Exception>())
             );
         }
