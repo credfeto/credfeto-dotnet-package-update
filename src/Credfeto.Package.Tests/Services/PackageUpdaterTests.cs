@@ -181,6 +181,69 @@ public sealed class PackageUpdaterTests : LoggingFolderCleanupTestBase
     }
 
     [Fact]
+    public async Task UpdateAsync_WithMatchingPackages_WhenCacheHasPartialVersions_OnlyQueriesRegistryForMissingPackages()
+    {
+        await this.CreateDummyCsprojAsync();
+
+        PackageVersion cachedInstalledVersion = new(packageId: "test.cached", version: new NuGetVersion("1.0.0"));
+        PackageVersion cachedVersion = new(packageId: "test.cached", version: new NuGetVersion("1.0.0"));
+        PackageVersion missingInstalledVersion = new(packageId: "test.missing", version: new NuGetVersion("1.0.0"));
+        PackageVersion fetchedVersion = new(packageId: "test.missing", version: new NuGetVersion("2.0.0"));
+
+        IProject mockProject = GetSubstitute<IProject>();
+        mockProject.Packages.Returns([cachedInstalledVersion, missingInstalledVersion]);
+        mockProject.UpdatePackage(Arg.Any<PackageVersion>()).Returns(true);
+        mockProject.Changed.Returns(true);
+
+        IPackageCache packageCache = GetSubstitute<IPackageCache>();
+        packageCache.GetVersions(Arg.Any<IReadOnlyList<string>>()).Returns([cachedVersion]);
+
+        IPackageRegistry packageRegistry = GetSubstitute<IPackageRegistry>();
+        packageRegistry
+            .FindPackagesAsync(
+                Arg.Any<IReadOnlyList<string>>(),
+                Arg.Any<IReadOnlyList<string>>(),
+                Arg.Any<CancellationToken>()
+            )
+            .Returns([fetchedVersion]);
+
+        PackageUpdater updater = this.CreateUpdater(
+            projectLoader: new StaticProjectLoader(mockProject),
+            packageRegistry: packageRegistry,
+            packageCache: packageCache
+        );
+        PackageUpdateConfiguration config = new(
+            PackageMatch: new PackageMatch(PackageId: "test", Prefix: true),
+            ExcludedPackages: []
+        );
+
+        IReadOnlyList<PackageVersion> result = await updater.UpdateAsync(
+            basePath: this.TempFolder,
+            configuration: config,
+            packageSources: NO_PACKAGE_SOURCES,
+            cancellationToken: this.CancellationToken()
+        );
+
+        Assert.Single(result);
+        Assert.Equal(expected: new NuGetVersion("2.0.0"), actual: result[0].Version);
+        Assert.True(
+            StringComparer.OrdinalIgnoreCase.Equals(x: "test.missing", y: result[0].PackageId),
+            userMessage: "Package ID should match"
+        );
+
+        await packageRegistry
+            .Received(1)
+            .FindPackagesAsync(
+                Arg.Is<IReadOnlyList<string>>(ids =>
+                    ids.Count == 1 && StringComparer.OrdinalIgnoreCase.Equals(x: "test.missing", y: ids[0])
+                ),
+                Arg.Any<IReadOnlyList<string>>(),
+                Arg.Any<CancellationToken>()
+            );
+        packageCache.Received(1).SetVersions(Arg.Any<IReadOnlyList<PackageVersion>>());
+    }
+
+    [Fact]
     public async Task UpdateAsync_WhenRegistryFindsNoPackages_ReturnsEmpty()
     {
         await this.CreateDummyCsprojAsync();

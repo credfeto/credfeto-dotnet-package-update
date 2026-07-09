@@ -66,7 +66,7 @@ public sealed class PackageUpdater : IPackageUpdater
 
         IReadOnlyList<PackageVersion> matching;
 
-        if (cachedVersions.Count != packageIds.Count)
+        if (cachedVersions.Count == 0)
         {
             matching = await this._packageRegistry.FindPackagesAsync(
                 packageIds: packageIds,
@@ -82,6 +82,30 @@ public sealed class PackageUpdater : IPackageUpdater
             }
 
             this._packageCache.SetVersions(matching);
+        }
+        else if (cachedVersions.Count != packageIds.Count)
+        {
+            HashSet<string> cachedPackageIds = new(
+                cachedVersions.Select(cached => cached.PackageId),
+                StringComparer.OrdinalIgnoreCase
+            );
+            IReadOnlyList<string> missingPackageIds =
+            [
+                .. packageIds.Where(packageId => !cachedPackageIds.Contains(packageId)),
+            ];
+
+            IReadOnlyList<PackageVersion> fetched = await this._packageRegistry.FindPackagesAsync(
+                packageIds: missingPackageIds,
+                packageSources: packageSources,
+                cancellationToken: cancellationToken
+            );
+
+            if (fetched is not [])
+            {
+                this._packageCache.SetVersions(fetched);
+            }
+
+            matching = [.. cachedVersions, .. fetched];
         }
         else
         {
@@ -222,8 +246,6 @@ public sealed class PackageUpdater : IPackageUpdater
     {
         return this._projectLoader.LoadAsync(path: fileName, cancellationToken: cancellationToken).AsTask();
     }
-
-
 
     private static IReadOnlyList<string> FindProjects(string folder)
     {
