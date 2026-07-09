@@ -16,6 +16,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Add missing YAML document start marker to GitVersion.yml for ansible-lint compliance
 - CI workflow fixes: add checkout before local actions, skip SOURCE_PUSH_TOKEN-dependent jobs for Dependabot PRs
 - Prevent crash when a PackageReference or SDK version attribute contains an unparseable value such as an MSBuild property, version range, or floating version
+- Avoid re-querying the registry for every package when only some package ids are missing from the version cache
 ### Changed
 - Updated DotNet SDK to 10.0.300
 - Renamed Credfeto.Package.Test to Credfeto.Package.Tests to follow the .Tests naming convention
