@@ -27,6 +27,12 @@ public sealed class DependencyInjectionTests : DependencyInjectionTestsBase
         this.RequireService<IPackageRegistry>();
     }
 
+    [Fact]
+    public void PackageMetadataFetcherMustBeRegistered()
+    {
+        this.RequireService<IPackageMetadataFetcher>();
+    }
+
     private static IServiceCollection Configure(IServiceCollection services)
     {
         return services.AddPackageUpdater();
