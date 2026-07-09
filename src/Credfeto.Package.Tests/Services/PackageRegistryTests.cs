@@ -40,8 +40,17 @@ public sealed class PackageRegistryTests : LoggingTestBase
         return [metadata];
     }
 
+    private static (string FailedPart, string SucceededPart) SplitOnSucceeded(string message)
+    {
+        const string marker = "Succeeded: ";
+        int index = message.IndexOf(marker, StringComparison.Ordinal);
+        Assert.True(index >= 0, $"Expected message to contain '{marker}': {message}");
+
+        return (message[..index], message[index..]);
+    }
+
     [Fact]
-    public Task FindPackagesAsync_WhenOneSourceFails_ThrowsUpdateFailedException()
+    public async Task FindPackagesAsync_WhenOneSourceFails_ThrowsUpdateFailedException()
     {
         IPackageMetadataFetcher metadataFetcher = GetSubstitute<IPackageMetadataFetcher>();
 
@@ -65,7 +74,7 @@ public sealed class PackageRegistryTests : LoggingTestBase
 
         PackageRegistry registry = this.CreateRegistry(metadataFetcher);
 
-        return Assert.ThrowsAsync<UpdateFailedException>(() =>
+        UpdateFailedException exception = await Assert.ThrowsAsync<UpdateFailedException>(() =>
             registry
                 .FindPackagesAsync(
                     packageIds: ["Test.Package"],
@@ -74,10 +83,33 @@ public sealed class PackageRegistryTests : LoggingTestBase
                 )
                 .AsTask()
         );
+
+        (string failedPart, string succeededPart) = SplitOnSucceeded(exception.Message);
+
+        Assert.Contains(
+            expectedSubstring: "Custom0",
+            actualString: failedPart,
+            comparisonType: StringComparison.Ordinal
+        );
+        Assert.DoesNotContain(
+            expectedSubstring: "Custom1",
+            actualString: failedPart,
+            comparisonType: StringComparison.Ordinal
+        );
+        Assert.Contains(
+            expectedSubstring: "Custom1",
+            actualString: succeededPart,
+            comparisonType: StringComparison.Ordinal
+        );
+        Assert.DoesNotContain(
+            expectedSubstring: "Custom0",
+            actualString: succeededPart,
+            comparisonType: StringComparison.Ordinal
+        );
     }
 
     [Fact]
-    public Task FindPackagesAsync_WhenAllSourcesFail_ThrowsUpdateFailedException()
+    public async Task FindPackagesAsync_WhenAllSourcesFail_ThrowsUpdateFailedException()
     {
         IPackageMetadataFetcher metadataFetcher = GetSubstitute<IPackageMetadataFetcher>();
 
@@ -89,7 +121,7 @@ public sealed class PackageRegistryTests : LoggingTestBase
 
         PackageRegistry registry = this.CreateRegistry(metadataFetcher);
 
-        return Assert.ThrowsAsync<UpdateFailedException>(() =>
+        UpdateFailedException exception = await Assert.ThrowsAsync<UpdateFailedException>(() =>
             registry
                 .FindPackagesAsync(
                     packageIds: ["Test.Package"],
@@ -97,6 +129,22 @@ public sealed class PackageRegistryTests : LoggingTestBase
                     cancellationToken: this.CancellationToken()
                 )
                 .AsTask()
+        );
+
+        Assert.Contains(
+            expectedSubstring: "Custom0",
+            actualString: exception.Message,
+            comparisonType: StringComparison.Ordinal
+        );
+        Assert.Contains(
+            expectedSubstring: "Custom1",
+            actualString: exception.Message,
+            comparisonType: StringComparison.Ordinal
+        );
+        Assert.Contains(
+            expectedSubstring: "Succeeded: (none)",
+            actualString: exception.Message,
+            comparisonType: StringComparison.Ordinal
         );
     }
 
