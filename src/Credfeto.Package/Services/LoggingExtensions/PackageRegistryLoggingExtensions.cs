@@ -41,11 +41,14 @@ internal static partial class PackageRegistryLoggingExtensions
     [LoggerMessage(
         EventId = 3,
         Level = LogLevel.Error,
-        Message = "All {sourceCount} package sources failed while looking up {packageId}"
+        Message = "{failedCount} of {sourceCount} package sources failed while looking up {packageId}. Failed: {failedSources}. Succeeded: {succeededSources}"
     )]
-    public static partial void AllPackageSourcesFailed(
+    public static partial void PackageSourcesFailed(
         this ILogger<PackageRegistry> logger,
+        int failedCount,
         int sourceCount,
-        string packageId
+        string packageId,
+        string failedSources,
+        string succeededSources
     );
 }
