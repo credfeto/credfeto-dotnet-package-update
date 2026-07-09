@@ -41,7 +41,7 @@ public sealed class PackageRegistryTests : LoggingTestBase
     }
 
     [Fact]
-    public async Task FindPackagesAsync_WhenOneSourceFails_ReturnsResultsFromRemainingSources()
+    public Task FindPackagesAsync_WhenOneSourceFails_ThrowsUpdateFailedException()
     {
         IPackageMetadataFetcher metadataFetcher = GetSubstitute<IPackageMetadataFetcher>();
 
@@ -65,15 +65,15 @@ public sealed class PackageRegistryTests : LoggingTestBase
 
         PackageRegistry registry = this.CreateRegistry(metadataFetcher);
 
-        IReadOnlyList<PackageVersion> result = await registry.FindPackagesAsync(
-            packageIds: ["Test.Package"],
-            packageSources: [DeadSourceUrl, AliveSourceUrl],
-            cancellationToken: this.CancellationToken()
+        return Assert.ThrowsAsync<UpdateFailedException>(() =>
+            registry
+                .FindPackagesAsync(
+                    packageIds: ["Test.Package"],
+                    packageSources: [DeadSourceUrl, AliveSourceUrl],
+                    cancellationToken: this.CancellationToken()
+                )
+                .AsTask()
         );
-
-        PackageVersion found = Assert.Single(result);
-        Assert.Equal(expected: "Test.Package", actual: found.PackageId);
-        Assert.Equal(expected: NuGetVersion.Parse("1.2.3"), actual: found.Version);
     }
 
     [Fact]
@@ -98,5 +98,27 @@ public sealed class PackageRegistryTests : LoggingTestBase
                 )
                 .AsTask()
         );
+    }
+
+    [Fact]
+    public async Task FindPackagesAsync_WhenAllSourcesSucceed_ReturnsResults()
+    {
+        IPackageMetadataFetcher metadataFetcher = GetSubstitute<IPackageMetadataFetcher>();
+
+        metadataFetcher
+            .GetMetadataAsync(Arg.Any<PackageSource>(), packageId: "Test.Package", Arg.Any<CancellationToken>())
+            .Returns(_ => Task.FromResult(MetadataFor(packageId: "Test.Package", version: "1.2.3")));
+
+        PackageRegistry registry = this.CreateRegistry(metadataFetcher);
+
+        IReadOnlyList<PackageVersion> result = await registry.FindPackagesAsync(
+            packageIds: ["Test.Package"],
+            packageSources: [AliveSourceUrl],
+            cancellationToken: this.CancellationToken()
+        );
+
+        PackageVersion found = Assert.Single(result);
+        Assert.Equal(expected: "Test.Package", actual: found.PackageId);
+        Assert.Equal(expected: NuGetVersion.Parse("1.2.3"), actual: found.Version);
     }
 }
