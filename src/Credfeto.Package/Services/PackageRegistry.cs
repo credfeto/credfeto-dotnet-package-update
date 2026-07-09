@@ -151,14 +151,30 @@ public sealed class PackageRegistry : IPackageRegistry
             )
         );
 
-        int failureCount = failures.Count(failure => failure is not null);
-
-        if (sources.Count != 0 && failureCount == sources.Count)
+        if (failures.Any(failure => failure is not null))
         {
-            this._logger.AllPackageSourcesFailed(sourceCount: sources.Count, packageId: packageId);
+            IReadOnlyList<(PackageSource Source, Exception? Failure)> outcomes = [.. sources.Zip(failures)];
+            IReadOnlyList<string> failedSources =
+            [
+                .. outcomes.Where(o => o.Failure is not null).Select(o => o.Source.Name),
+            ];
+            IReadOnlyList<string> succeededSources =
+            [
+                .. outcomes.Where(o => o.Failure is null).Select(o => o.Source.Name),
+            ];
+
+            this._logger.PackageSourcesFailed(
+                failedCount: failedSources.Count,
+                sourceCount: sources.Count,
+                packageId: packageId,
+                failedSources: string.Join(separator: ", ", failedSources),
+                succeededSources: succeededSources.Count == 0
+                    ? "(none)"
+                    : string.Join(separator: ", ", succeededSources)
+            );
 
             throw new UpdateFailedException(
-                $"All {sources.Count} package sources failed while looking up {packageId}",
+                $"{failedSources.Count} of {sources.Count} package source(s) failed while looking up {packageId}: {string.Join(separator: ", ", failedSources)}",
                 new AggregateException(failures.OfType<Exception>())
             );
         }
