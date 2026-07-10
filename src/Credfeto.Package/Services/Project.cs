@@ -40,7 +40,7 @@ internal sealed class Project : IProject
 
     public bool UpdatePackage(PackageVersion package)
     {
-        if (this.Packages.All(p => !StringComparer.OrdinalIgnoreCase.Equals(x: p.PackageId, y: package.PackageId)))
+        if (!this.HasPackageReference(package.PackageId))
         {
             return false;
         }
@@ -139,6 +139,26 @@ internal sealed class Project : IProject
         }
 
         return true;
+    }
+
+    private bool HasPackageReference(string packageId)
+    {
+        bool hasReference = this.GetPackageReferences()
+            .Any(node => StringComparer.OrdinalIgnoreCase.Equals(x: node.GetAttribute("Include"), y: packageId));
+
+        return hasReference || this.HasSdkReference(packageId);
+    }
+
+    private bool HasSdkReference(string packageId)
+    {
+        if (this._doc.SelectSingleNode("/Project") is not XmlElement project)
+        {
+            return false;
+        }
+
+        IReadOnlyList<string> sdk = project.GetAttribute("Sdk").Split("/");
+
+        return sdk.Count == 2 && StringComparer.OrdinalIgnoreCase.Equals(x: sdk[0], y: packageId);
     }
 
     private IReadOnlyList<PackageVersion> GetCurrentPackageVersions()

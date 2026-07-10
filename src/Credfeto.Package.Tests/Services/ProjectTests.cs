@@ -129,4 +129,107 @@ public sealed class ProjectTests : LoggingFolderCleanupTestBase
         Assert.Equal(expected: "Some.Sdk", actual: entry.PackageId);
         Assert.Equal(expected: new NuGetVersion("1.2.3"), actual: entry.Version);
     }
+
+    [Fact]
+    public async Task UpdatePackage_WhenPackagePresentWithHigherVersion_ReturnsTrueAndUpdatesReference()
+    {
+        IProject? project = await this.LoadProjectAsync(
+            """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <ItemGroup>
+                <PackageReference Include="Some.Package" Version="1.0.0" />
+              </ItemGroup>
+            </Project>
+            """
+        );
+
+        Assert.NotNull(project);
+        bool updated = project.UpdatePackage(new(packageId: "Some.Package", new NuGetVersion("2.0.0")));
+
+        Assert.True(updated, userMessage: "Expected update to report a change");
+        Assert.True(project.Changed, userMessage: "Expected project to be marked as changed");
+        PackageVersion entry = Assert.Single(project.Packages);
+        Assert.Equal(expected: new NuGetVersion("2.0.0"), actual: entry.Version);
+    }
+
+    [Fact]
+    public async Task UpdatePackage_WhenPackagePresentWithLowerOrEqualVersion_ReturnsFalse()
+    {
+        IProject? project = await this.LoadProjectAsync(
+            """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <ItemGroup>
+                <PackageReference Include="Some.Package" Version="2.0.0" />
+              </ItemGroup>
+            </Project>
+            """
+        );
+
+        Assert.NotNull(project);
+        bool updated = project.UpdatePackage(new(packageId: "Some.Package", new NuGetVersion("1.0.0")));
+
+        Assert.False(updated, userMessage: "Expected no update to be reported for a non-upgrading version");
+        Assert.False(project.Changed, userMessage: "Expected project to remain unchanged");
+        PackageVersion entry = Assert.Single(project.Packages);
+        Assert.Equal(expected: new NuGetVersion("2.0.0"), actual: entry.Version);
+    }
+
+    [Fact]
+    public async Task UpdatePackage_WhenPackageNotPresent_ReturnsFalse()
+    {
+        IProject? project = await this.LoadProjectAsync(
+            """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <ItemGroup>
+                <PackageReference Include="Other.Package" Version="1.0.0" />
+              </ItemGroup>
+            </Project>
+            """
+        );
+
+        Assert.NotNull(project);
+        bool updated = project.UpdatePackage(new(packageId: "Some.Package", new NuGetVersion("2.0.0")));
+
+        Assert.False(updated, userMessage: "Expected no update when the package is not referenced at all");
+        Assert.False(project.Changed, userMessage: "Expected project to remain unchanged");
+    }
+
+    [Fact]
+    public async Task UpdatePackage_WhenPackagePresentOnlyWithUnparseableVersion_ReturnsFalse()
+    {
+        IProject? project = await this.LoadProjectAsync(
+            """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <ItemGroup>
+                <PackageReference Include="Some.Package" Version="$(SomePackageVersion)" />
+              </ItemGroup>
+            </Project>
+            """
+        );
+
+        Assert.NotNull(project);
+        bool updated = project.UpdatePackage(new(packageId: "Some.Package", new NuGetVersion("2.0.0")));
+
+        Assert.False(updated, userMessage: "Expected no update when the only reference has an unparseable version");
+        Assert.False(project.Changed, userMessage: "Expected project to remain unchanged");
+    }
+
+    [Fact]
+    public async Task UpdatePackage_WhenPackagePresentOnlyViaSdkAttribute_ReturnsTrueAndUpdatesSdk()
+    {
+        IProject? project = await this.LoadProjectAsync(
+            """
+            <Project Sdk="Some.Sdk/1.2.3">
+            </Project>
+            """
+        );
+
+        Assert.NotNull(project);
+        bool updated = project.UpdatePackage(new(packageId: "Some.Sdk", new NuGetVersion("1.3.0")));
+
+        Assert.True(updated, userMessage: "Expected update to report a change");
+        Assert.True(project.Changed, userMessage: "Expected project to be marked as changed");
+        PackageVersion entry = Assert.Single(project.Packages);
+        Assert.Equal(expected: new NuGetVersion("1.3.0"), actual: entry.Version);
+    }
 }
