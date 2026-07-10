@@ -1,3 +1,4 @@
+using System;
 using Microsoft.Extensions.Logging;
 using NuGet.Versioning;
 
@@ -23,4 +24,31 @@ internal static partial class PackageRegistryLoggingExtensions
         Message = "Enumerating matching package versions for {packageId}..."
     )]
     public static partial void EnumeratingPackageVersions(this ILogger<PackageRegistry> logger, string packageId);
+
+    [LoggerMessage(
+        EventId = 2,
+        Level = LogLevel.Warning,
+        Message = "Package source {source} failed while looking up {packageId}: {message}"
+    )]
+    public static partial void PackageSourceQueryFailed(
+        this ILogger<PackageRegistry> logger,
+        string source,
+        string packageId,
+        string message,
+        Exception exception
+    );
+
+    [LoggerMessage(
+        EventId = 3,
+        Level = LogLevel.Error,
+        Message = "{failedCount} of {sourceCount} package sources failed while looking up {packageId}. Failed: {failedSources}. Succeeded: {succeededSources}"
+    )]
+    public static partial void PackageSourcesFailed(
+        this ILogger<PackageRegistry> logger,
+        int failedCount,
+        int sourceCount,
+        string packageId,
+        string failedSources,
+        string succeededSources
+    );
 }

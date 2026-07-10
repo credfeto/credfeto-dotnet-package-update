@@ -11,6 +11,7 @@ public static class PackageUpdaterSetup
             .AddSingleton<IPackageCache, PackageCache>()
             .AddSingleton<IProjectLoader, ProjectLoader>()
             .AddSingleton<IPackageUpdater, PackageUpdater>()
+            .AddSingleton<IPackageMetadataFetcher, PackageMetadataFetcher>()
             .AddSingleton<IPackageRegistry, PackageRegistry>();
     }
 }

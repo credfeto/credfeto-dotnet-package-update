@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Credfeto.Package.Exceptions;
 using Credfeto.Package.Services.LoggingExtensions;
 using Microsoft.Extensions.Logging;
 using NonBlocking;
-using NuGet.Common;
 using NuGet.Configuration;
 using NuGet.Protocol.Core.Types;
 using NuGet.Versioning;
@@ -15,12 +15,12 @@ namespace Credfeto.Package.Services;
 
 public sealed class PackageRegistry : IPackageRegistry
 {
-    private const bool INCLUDE_UNLISTED_PACKAGES = false;
-
+    private readonly IPackageMetadataFetcher _metadataFetcher;
     private readonly ILogger<PackageRegistry> _logger;
 
-    public PackageRegistry(ILogger<PackageRegistry> logger)
+    public PackageRegistry(IPackageMetadataFetcher metadataFetcher, ILogger<PackageRegistry> logger)
     {
+        this._metadataFetcher = metadataFetcher;
         this._logger = logger;
     }
 
@@ -66,21 +66,10 @@ public sealed class PackageRegistry : IPackageRegistry
         CancellationToken cancellationToken
     )
     {
-        SourceRepository sourceRepository = new(source: packageSource, [.. Repository.Provider.GetCoreV3()]);
-
-        PackageMetadataResource metadataResource = await sourceRepository.GetResourceAsync<PackageMetadataResource>(
-            cancellationToken
-        );
-
-        using SourceCacheContext sourceCacheContext = new();
-
-        IEnumerable<IPackageSearchMetadata> result = await metadataResource.GetMetadataAsync(
+        IEnumerable<IPackageSearchMetadata> result = await this._metadataFetcher.GetMetadataAsync(
+            packageSource: packageSource,
             packageId: packageId,
-            includePrerelease: false,
-            includeUnlisted: INCLUDE_UNLISTED_PACKAGES,
-            sourceCacheContext: sourceCacheContext,
-            log: NullLogger.Instance,
-            token: cancellationToken
+            cancellationToken: cancellationToken
         );
 
         foreach (
@@ -151,9 +140,9 @@ public sealed class PackageRegistry : IPackageRegistry
 
         ConcurrentDictionary<string, NuGetVersion> found = new(StringComparer.Ordinal);
 
-        await Task.WhenAll(
+        Exception?[] failures = await Task.WhenAll(
             sources.Select(selector: source =>
-                this.LoadPackagesFromSourceAsync(
+                this.LoadPackagesFromSourceSafeAsync(
                     packageSource: source,
                     packageId: packageId,
                     found: found,
@@ -162,9 +151,72 @@ public sealed class PackageRegistry : IPackageRegistry
             )
         );
 
+        if (failures.Any(failure => failure is not null))
+        {
+            IReadOnlyList<(PackageSource Source, Exception? Failure)> outcomes = [.. sources.Zip(failures)];
+            IReadOnlyList<string> failedSources =
+            [
+                .. outcomes.Where(o => o.Failure is not null).Select(o => o.Source.Name),
+            ];
+            IReadOnlyList<string> succeededSources =
+            [
+                .. outcomes.Where(o => o.Failure is null).Select(o => o.Source.Name),
+            ];
+            string succeededSourcesMessage =
+                succeededSources.Count == 0 ? "(none)" : string.Join(separator: ", ", succeededSources);
+
+            this._logger.PackageSourcesFailed(
+                failedCount: failedSources.Count,
+                sourceCount: sources.Count,
+                packageId: packageId,
+                failedSources: string.Join(separator: ", ", failedSources),
+                succeededSources: succeededSourcesMessage
+            );
+
+            throw new UpdateFailedException(
+                $"{failedSources.Count} of {sources.Count} package source(s) failed while looking up {packageId}: {string.Join(separator: ", ", failedSources)}. Succeeded: {succeededSourcesMessage}",
+                new AggregateException(failures.OfType<Exception>())
+            );
+        }
+
         foreach ((string key, NuGetVersion value) in found)
         {
             packages.TryAdd(key: key, value: value);
+        }
+    }
+
+    private async Task<Exception?> LoadPackagesFromSourceSafeAsync(
+        PackageSource packageSource,
+        string packageId,
+        ConcurrentDictionary<string, NuGetVersion> found,
+        CancellationToken cancellationToken
+    )
+    {
+        try
+        {
+            await this.LoadPackagesFromSourceAsync(
+                packageSource: packageSource,
+                packageId: packageId,
+                found: found,
+                cancellationToken: cancellationToken
+            );
+
+            return null;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            this._logger.PackageSourceQueryFailed(
+                source: packageSource.Name,
+                packageId: packageId,
+                message: exception.Message,
+                exception: exception
+            );
+
+            return exception;
         }
     }
 }
