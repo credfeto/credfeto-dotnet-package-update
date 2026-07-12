@@ -9,5 +9,3 @@ public interface IProjectLoader
 
     void Reset();
 }
-
-
