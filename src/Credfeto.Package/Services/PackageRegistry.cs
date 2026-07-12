@@ -30,14 +30,14 @@ public sealed class PackageRegistry : IPackageRegistry
         CancellationToken cancellationToken
     )
     {
-        IReadOnlyList<PackageSource> sources = DefinePackageSources(packageSources);
+        IReadOnlyList<SourceRepository> sourceRepositories = DefineSourceRepositories(packageSources);
 
         ConcurrentDictionary<string, NuGetVersion> packages = new(StringComparer.OrdinalIgnoreCase);
 
         foreach (string packageId in packageIds)
         {
             await this.FindPackageInSourcesAsync(
-                sources: sources,
+                sourceRepositories: sourceRepositories,
                 packageId: packageId,
                 packages: packages,
                 cancellationToken: cancellationToken
@@ -47,11 +47,18 @@ public sealed class PackageRegistry : IPackageRegistry
         return [.. packages.Select(p => new PackageVersion(packageId: p.Key, version: p.Value))];
     }
 
-    private static IReadOnlyList<PackageSource> DefinePackageSources(IReadOnlyList<string> sources)
+    private static IReadOnlyList<SourceRepository> DefineSourceRepositories(IReadOnlyList<string> sources)
     {
         PackageSourceProvider packageSourceProvider = new(Settings.LoadDefaultSettings(Environment.CurrentDirectory));
 
-        return [.. packageSourceProvider.LoadPackageSources().Concat(sources.Select(CreateCustomPackageSource))];
+        IReadOnlyList<PackageSource> packageSources =
+        [
+            .. packageSourceProvider.LoadPackageSources().Concat(sources.Select(CreateCustomPackageSource)),
+        ];
+
+        IReadOnlyList<Lazy<INuGetResourceProvider>> providers = [.. Repository.Provider.GetCoreV3()];
+
+        return [.. packageSources.Select(packageSource => new SourceRepository(source: packageSource, providers))];
     }
 
     private static PackageSource CreateCustomPackageSource(string source, int sourceId)
@@ -60,14 +67,14 @@ public sealed class PackageRegistry : IPackageRegistry
     }
 
     private async Task LoadPackagesFromSourceAsync(
-        PackageSource packageSource,
+        SourceRepository sourceRepository,
         string packageId,
         ConcurrentDictionary<string, NuGetVersion> found,
         CancellationToken cancellationToken
     )
     {
         IEnumerable<IPackageSearchMetadata> result = await this._metadataFetcher.GetMetadataAsync(
-            packageSource: packageSource,
+            sourceRepository: sourceRepository,
             packageId: packageId,
             cancellationToken: cancellationToken
         );
@@ -82,7 +89,7 @@ public sealed class PackageRegistry : IPackageRegistry
             if (found.TryGetValue(key: packageVersion.PackageId, out NuGetVersion? existingVersion))
             {
                 this.DoUpdateRegisteredFoundPackage(
-                    packageSource: packageSource,
+                    packageSource: sourceRepository.PackageSource,
                     found: found,
                     existingVersion: existingVersion,
                     packageVersion: packageVersion
@@ -93,7 +100,7 @@ public sealed class PackageRegistry : IPackageRegistry
                 this._logger.FoundPackageInSource(
                     packageId: packageVersion.PackageId,
                     version: packageVersion.Version,
-                    source: packageSource.Source
+                    source: sourceRepository.PackageSource.Source
                 );
             }
         }
@@ -130,7 +137,7 @@ public sealed class PackageRegistry : IPackageRegistry
     }
 
     private async ValueTask FindPackageInSourcesAsync(
-        IReadOnlyList<PackageSource> sources,
+        IReadOnlyList<SourceRepository> sourceRepositories,
         string packageId,
         ConcurrentDictionary<string, NuGetVersion> packages,
         CancellationToken cancellationToken
@@ -141,9 +148,9 @@ public sealed class PackageRegistry : IPackageRegistry
         ConcurrentDictionary<string, NuGetVersion> found = new(StringComparer.Ordinal);
 
         Exception?[] failures = await Task.WhenAll(
-            sources.Select(selector: source =>
+            sourceRepositories.Select(selector: sourceRepository =>
                 this.LoadPackagesFromSourceSafeAsync(
-                    packageSource: source,
+                    sourceRepository: sourceRepository,
                     packageId: packageId,
                     found: found,
                     cancellationToken: cancellationToken
@@ -153,28 +160,31 @@ public sealed class PackageRegistry : IPackageRegistry
 
         if (failures.Any(failure => failure is not null))
         {
-            IReadOnlyList<(PackageSource Source, Exception? Failure)> outcomes = [.. sources.Zip(failures)];
+            IReadOnlyList<(SourceRepository SourceRepository, Exception? Failure)> outcomes =
+            [
+                .. sourceRepositories.Zip(failures),
+            ];
             IReadOnlyList<string> failedSources =
             [
-                .. outcomes.Where(o => o.Failure is not null).Select(o => o.Source.Name),
+                .. outcomes.Where(o => o.Failure is not null).Select(o => o.SourceRepository.PackageSource.Name),
             ];
             IReadOnlyList<string> succeededSources =
             [
-                .. outcomes.Where(o => o.Failure is null).Select(o => o.Source.Name),
+                .. outcomes.Where(o => o.Failure is null).Select(o => o.SourceRepository.PackageSource.Name),
             ];
             string succeededSourcesMessage =
                 succeededSources.Count == 0 ? "(none)" : string.Join(separator: ", ", succeededSources);
 
             this._logger.PackageSourcesFailed(
                 failedCount: failedSources.Count,
-                sourceCount: sources.Count,
+                sourceCount: sourceRepositories.Count,
                 packageId: packageId,
                 failedSources: string.Join(separator: ", ", failedSources),
                 succeededSources: succeededSourcesMessage
             );
 
             throw new UpdateFailedException(
-                $"{failedSources.Count} of {sources.Count} package source(s) failed while looking up {packageId}: {string.Join(separator: ", ", failedSources)}. Succeeded: {succeededSourcesMessage}",
+                $"{failedSources.Count} of {sourceRepositories.Count} package source(s) failed while looking up {packageId}: {string.Join(separator: ", ", failedSources)}. Succeeded: {succeededSourcesMessage}",
                 new AggregateException(failures.OfType<Exception>())
             );
         }
@@ -186,7 +196,7 @@ public sealed class PackageRegistry : IPackageRegistry
     }
 
     private async Task<Exception?> LoadPackagesFromSourceSafeAsync(
-        PackageSource packageSource,
+        SourceRepository sourceRepository,
         string packageId,
         ConcurrentDictionary<string, NuGetVersion> found,
         CancellationToken cancellationToken
@@ -195,7 +205,7 @@ public sealed class PackageRegistry : IPackageRegistry
         try
         {
             await this.LoadPackagesFromSourceAsync(
-                packageSource: packageSource,
+                sourceRepository: sourceRepository,
                 packageId: packageId,
                 found: found,
                 cancellationToken: cancellationToken
@@ -210,7 +220,7 @@ public sealed class PackageRegistry : IPackageRegistry
         catch (Exception exception)
         {
             this._logger.PackageSourceQueryFailed(
-                source: packageSource.Name,
+                source: sourceRepository.PackageSource.Name,
                 packageId: packageId,
                 message: exception.Message,
                 exception: exception
