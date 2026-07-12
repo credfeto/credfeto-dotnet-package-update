@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using NuGet.Configuration;
 using NuGet.Protocol.Core.Types;
 
 namespace Credfeto.Package;
@@ -9,7 +8,7 @@ namespace Credfeto.Package;
 public interface IPackageMetadataFetcher
 {
     Task<IEnumerable<IPackageSearchMetadata>> GetMetadataAsync(
-        PackageSource packageSource,
+        SourceRepository sourceRepository,
         string packageId,
         CancellationToken cancellationToken
     );
