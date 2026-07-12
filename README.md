@@ -1,4 +1,4 @@
-## credfeto-dotnet-package-update
+# credfeto-dotnet-package-update
 
 Command line tool for updating nuget packages across a solution/folder which can be scripted as part of an automated
 build.
@@ -50,13 +50,13 @@ Note the tool returns a non-zero exit code if any packages are updated.
 Also provides in the output the packages that were updated in the format below so that scripts can read the output and
 take action.
 
-```
+```text
 ::set-env name=PackageId::Version
 ```
 
 e.g:
 
-```
+```text
 ::set-env name=Credfeto.Extensions.Configuration.Typed::1.2.3.4
 ::set-env name=Credfeto.Extensions.Caching::3.4.5.6
 ```
