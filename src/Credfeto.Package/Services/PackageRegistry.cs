@@ -86,49 +86,54 @@ public sealed class PackageRegistry : IPackageRegistry
                 .Where(p => !p.Version.IsPrerelease && !IsBannedPackage(p))
         )
         {
-            if (found.TryGetValue(key: packageVersion.PackageId, out NuGetVersion? existingVersion))
-            {
-                this.DoUpdateRegisteredFoundPackage(
-                    packageSource: sourceRepository.PackageSource,
-                    found: found,
-                    existingVersion: existingVersion,
-                    packageVersion: packageVersion
-                );
-            }
-            else if (found.TryAdd(key: packageVersion.PackageId, value: packageVersion.Version))
-            {
-                this._logger.FoundPackageInSource(
-                    packageId: packageVersion.PackageId,
-                    version: packageVersion.Version,
-                    source: sourceRepository.PackageSource.Source
-                );
-            }
+            this.RegisterFoundPackageVersion(
+                packageSource: sourceRepository.PackageSource,
+                found: found,
+                packageId: packageVersion.PackageId,
+                candidateVersion: packageVersion.Version
+            );
         }
     }
 
-    private void DoUpdateRegisteredFoundPackage(
+    public void RegisterFoundPackageVersion(
         PackageSource packageSource,
         ConcurrentDictionary<string, NuGetVersion> found,
-        NuGetVersion existingVersion,
-        PackageVersion packageVersion
+        string packageId,
+        NuGetVersion candidateVersion
     )
     {
-        // pick the latest feed always
-        if (
-            existingVersion < packageVersion.Version
-            && found.TryUpdate(
-                key: packageVersion.PackageId,
-                newValue: packageVersion.Version,
-                comparisonValue: existingVersion
-            )
-        )
+        // pick the latest feed always; re-read and retry on a lost TryUpdate race instead of
+        // giving up, so a higher candidate is never dropped due to a stale read (see #569).
+        while (true)
         {
-            this._logger.FoundPackageInSource(
-                packageId: packageVersion.PackageId,
-                version: packageVersion.Version,
-                source: packageSource.Source
-            );
+            if (!found.TryGetValue(key: packageId, out NuGetVersion? existingVersion))
+            {
+                if (found.TryAdd(key: packageId, value: candidateVersion))
+                {
+                    break;
+                }
+
+                continue;
+            }
+
+            if (existingVersion >= candidateVersion)
+            {
+                return;
+            }
+
+            if (
+                found.TryUpdate(key: packageId, newValue: candidateVersion, comparisonValue: existingVersion)
+            )
+            {
+                break;
+            }
         }
+
+        this._logger.FoundPackageInSource(
+            packageId: packageId,
+            version: candidateVersion,
+            source: packageSource.Source
+        );
     }
 
     private static bool IsBannedPackage(PackageVersion packageVersion)
