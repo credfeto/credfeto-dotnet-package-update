@@ -66,10 +66,9 @@ public sealed class PackageRegistry : IPackageRegistry
         return new(source: source, $"Custom{sourceId}", isEnabled: true, isOfficial: true, isPersistable: true);
     }
 
-    private async Task LoadPackagesFromSourceAsync(
+    private async Task<IReadOnlyList<PackageVersion>> LoadPackagesFromSourceAsync(
         SourceRepository sourceRepository,
         string packageId,
-        ConcurrentDictionary<string, NuGetVersion> found,
         CancellationToken cancellationToken
     )
     {
@@ -79,55 +78,30 @@ public sealed class PackageRegistry : IPackageRegistry
             cancellationToken: cancellationToken
         );
 
-        foreach (
-            PackageVersion packageVersion in result
+        return
+        [
+            .. result
                 .Select(entry => entry.Identity)
                 .Select(identity => new PackageVersion(packageId: identity.Id, version: identity.Version))
-                .Where(p => !p.Version.IsPrerelease && !IsBannedPackage(p))
-        )
-        {
-            this.RegisterFoundPackageVersion(
-                packageSource: sourceRepository.PackageSource,
-                found: found,
-                packageId: packageVersion.PackageId,
-                candidateVersion: packageVersion.Version
-            );
-        }
+                .Where(p => !p.Version.IsPrerelease && !IsBannedPackage(p)),
+        ];
     }
 
+    // merged single-threaded after the Task.WhenAll barrier in FindPackageInSourcesAsync, so the
+    // highest candidate across sources is never dropped by a lost concurrent-write race (see #569).
     public void RegisterFoundPackageVersion(
         PackageSource packageSource,
-        ConcurrentDictionary<string, NuGetVersion> found,
+        IDictionary<string, NuGetVersion> found,
         string packageId,
         NuGetVersion candidateVersion
     )
     {
-        // pick the latest feed always; re-read and retry on a lost TryUpdate race instead of
-        // giving up, so a higher candidate is never dropped due to a stale read (see #569).
-        while (true)
+        if (found.TryGetValue(key: packageId, out NuGetVersion? existingVersion) && existingVersion >= candidateVersion)
         {
-            if (!found.TryGetValue(key: packageId, out NuGetVersion? existingVersion))
-            {
-                if (found.TryAdd(key: packageId, value: candidateVersion))
-                {
-                    break;
-                }
-
-                continue;
-            }
-
-            if (existingVersion >= candidateVersion)
-            {
-                return;
-            }
-
-            if (
-                found.TryUpdate(key: packageId, newValue: candidateVersion, comparisonValue: existingVersion)
-            )
-            {
-                break;
-            }
+            return;
         }
+
+        found[packageId] = candidateVersion;
 
         this._logger.FoundPackageInSource(
             packageId: packageId,
@@ -150,49 +124,27 @@ public sealed class PackageRegistry : IPackageRegistry
     {
         this._logger.EnumeratingPackageVersions(packageId);
 
-        ConcurrentDictionary<string, NuGetVersion> found = new(StringComparer.Ordinal);
-
-        Exception?[] failures = await Task.WhenAll(
+        (IReadOnlyList<PackageVersion> Found, Exception? Failure)[] outcomes = await Task.WhenAll(
             sourceRepositories.Select(selector: sourceRepository =>
                 this.LoadPackagesFromSourceSafeAsync(
                     sourceRepository: sourceRepository,
                     packageId: packageId,
-                    found: found,
                     cancellationToken: cancellationToken
                 )
             )
         );
 
-        if (failures.Any(failure => failure is not null))
+        if (outcomes.Any(outcome => outcome.Failure is not null))
         {
-            IReadOnlyList<(SourceRepository SourceRepository, Exception? Failure)> outcomes =
-            [
-                .. sourceRepositories.Zip(failures),
-            ];
-            IReadOnlyList<string> failedSources =
-            [
-                .. outcomes.Where(o => o.Failure is not null).Select(o => o.SourceRepository.PackageSource.Name),
-            ];
-            IReadOnlyList<string> succeededSources =
-            [
-                .. outcomes.Where(o => o.Failure is null).Select(o => o.SourceRepository.PackageSource.Name),
-            ];
-            string succeededSourcesMessage =
-                succeededSources.Count == 0 ? "(none)" : string.Join(separator: ", ", succeededSources);
-
-            this._logger.PackageSourcesFailed(
-                failedCount: failedSources.Count,
-                sourceCount: sourceRepositories.Count,
-                packageId: packageId,
-                failedSources: string.Join(separator: ", ", failedSources),
-                succeededSources: succeededSourcesMessage
-            );
-
-            throw new UpdateFailedException(
-                $"{failedSources.Count} of {sourceRepositories.Count} package source(s) failed while looking up {packageId}: {string.Join(separator: ", ", failedSources)}. Succeeded: {succeededSourcesMessage}",
-                new AggregateException(failures.OfType<Exception>())
-            );
+            this.ThrowForFailedSources(sourceRepositories: sourceRepositories, packageId: packageId, outcomes: outcomes);
         }
+
+        // sources ran concurrently above; the Task.WhenAll barrier means every source's results are
+        // already collected by this point, so merging them here can run single-threaded (see #569).
+        Dictionary<string, NuGetVersion> found = this.MergeFoundVersions(
+            sourceRepositories: sourceRepositories,
+            outcomes: outcomes
+        );
 
         foreach ((string key, NuGetVersion value) in found)
         {
@@ -200,23 +152,84 @@ public sealed class PackageRegistry : IPackageRegistry
         }
     }
 
-    private async Task<Exception?> LoadPackagesFromSourceSafeAsync(
+    private Dictionary<string, NuGetVersion> MergeFoundVersions(
+        IReadOnlyList<SourceRepository> sourceRepositories,
+        (IReadOnlyList<PackageVersion> Found, Exception? Failure)[] outcomes
+    )
+    {
+        Dictionary<string, NuGetVersion> found = new(StringComparer.Ordinal);
+
+        for (int index = 0; index < sourceRepositories.Count; ++index)
+        {
+            PackageSource packageSource = sourceRepositories[index].PackageSource;
+
+            foreach (PackageVersion packageVersion in outcomes[index].Found)
+            {
+                this.RegisterFoundPackageVersion(
+                    packageSource: packageSource,
+                    found: found,
+                    packageId: packageVersion.PackageId,
+                    candidateVersion: packageVersion.Version
+                );
+            }
+        }
+
+        return found;
+    }
+
+    private void ThrowForFailedSources(
+        IReadOnlyList<SourceRepository> sourceRepositories,
+        string packageId,
+        (IReadOnlyList<PackageVersion> Found, Exception? Failure)[] outcomes
+    )
+    {
+        IReadOnlyList<(string SourceName, Exception? Failure)> namedOutcomes =
+        [
+            .. sourceRepositories.Zip(
+                outcomes,
+                (sourceRepository, outcome) => (sourceRepository.PackageSource.Name, outcome.Failure)
+            ),
+        ];
+        IReadOnlyList<string> failedSources =
+        [
+            .. namedOutcomes.Where(o => o.Failure is not null).Select(o => o.SourceName),
+        ];
+        IReadOnlyList<string> succeededSources =
+        [
+            .. namedOutcomes.Where(o => o.Failure is null).Select(o => o.SourceName),
+        ];
+        string succeededSourcesMessage =
+            succeededSources.Count == 0 ? "(none)" : string.Join(separator: ", ", succeededSources);
+
+        this._logger.PackageSourcesFailed(
+            failedCount: failedSources.Count,
+            sourceCount: sourceRepositories.Count,
+            packageId: packageId,
+            failedSources: string.Join(separator: ", ", failedSources),
+            succeededSources: succeededSourcesMessage
+        );
+
+        throw new UpdateFailedException(
+            $"{failedSources.Count} of {sourceRepositories.Count} package source(s) failed while looking up {packageId}: {string.Join(separator: ", ", failedSources)}. Succeeded: {succeededSourcesMessage}",
+            new AggregateException(outcomes.Select(outcome => outcome.Failure).OfType<Exception>())
+        );
+    }
+
+    private async Task<(IReadOnlyList<PackageVersion> Found, Exception? Failure)> LoadPackagesFromSourceSafeAsync(
         SourceRepository sourceRepository,
         string packageId,
-        ConcurrentDictionary<string, NuGetVersion> found,
         CancellationToken cancellationToken
     )
     {
         try
         {
-            await this.LoadPackagesFromSourceAsync(
+            IReadOnlyList<PackageVersion> found = await this.LoadPackagesFromSourceAsync(
                 sourceRepository: sourceRepository,
                 packageId: packageId,
-                found: found,
                 cancellationToken: cancellationToken
             );
 
-            return null;
+            return (found, null);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -231,7 +244,7 @@ public sealed class PackageRegistry : IPackageRegistry
                 exception: exception
             );
 
-            return exception;
+            return ([], exception);
         }
     }
 }
