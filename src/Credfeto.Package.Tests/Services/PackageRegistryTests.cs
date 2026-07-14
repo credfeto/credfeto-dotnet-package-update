@@ -263,4 +263,45 @@ public sealed class PackageRegistryTests : LoggingTestBase
             Assert.Equal(expected: highestVersion, actual: found[TestPackageId]);
         }
     }
+
+    [Fact]
+    public async Task RegisterFoundPackageVersion_WhenCalledConcurrentlyForAnAbsentKey_NeverDropsTheHighestVersion()
+    {
+        PackageRegistry registry = this.CreateRegistry(GetSubstitute<IPackageMetadataFetcher>());
+        PackageSource source = CreateTestPackageSource();
+        NuGetVersion middleVersion = NuGetVersion.Parse("1.5.0");
+        NuGetVersion highestVersion = NuGetVersion.Parse("2.0.0");
+
+        CancellationToken cancellationToken = this.CancellationToken();
+
+        for (int iteration = 0; iteration < 200; ++iteration)
+        {
+            ConcurrentDictionary<string, NuGetVersion> found = new(StringComparer.Ordinal);
+
+            await Task.WhenAll(
+                Task.Run(
+                    () =>
+                        registry.RegisterFoundPackageVersion(
+                            packageSource: source,
+                            found: found,
+                            packageId: TestPackageId,
+                            candidateVersion: highestVersion
+                        ),
+                    cancellationToken
+                ),
+                Task.Run(
+                    () =>
+                        registry.RegisterFoundPackageVersion(
+                            packageSource: source,
+                            found: found,
+                            packageId: TestPackageId,
+                            candidateVersion: middleVersion
+                        ),
+                    cancellationToken
+                )
+            );
+
+            Assert.Equal(expected: highestVersion, actual: found[TestPackageId]);
+        }
+    }
 }
