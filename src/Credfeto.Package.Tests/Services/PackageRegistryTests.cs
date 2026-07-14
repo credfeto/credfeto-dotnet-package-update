@@ -8,7 +8,6 @@ using Credfeto.Package.Services;
 using FunFair.Test.Common;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
-using NuGet.Configuration;
 using NuGet.Packaging.Core;
 using NuGet.Protocol.Core.Types;
 using NuGet.Versioning;
@@ -56,7 +55,9 @@ public sealed class PackageRegistryTests : LoggingTestBase
 
         metadataFetcher
             .GetMetadataAsync(
-                Arg.Is<PackageSource>(source => StringComparer.Ordinal.Equals(source.Source, DeadSourceUrl)),
+                Arg.Is<SourceRepository>(sourceRepository =>
+                    StringComparer.Ordinal.Equals(sourceRepository.PackageSource.Source, DeadSourceUrl)
+                ),
                 packageId: "Test.Package",
                 Arg.Any<CancellationToken>()
             )
@@ -66,7 +67,9 @@ public sealed class PackageRegistryTests : LoggingTestBase
 
         metadataFetcher
             .GetMetadataAsync(
-                Arg.Is<PackageSource>(source => StringComparer.Ordinal.Equals(source.Source, AliveSourceUrl)),
+                Arg.Is<SourceRepository>(sourceRepository =>
+                    StringComparer.Ordinal.Equals(sourceRepository.PackageSource.Source, AliveSourceUrl)
+                ),
                 packageId: "Test.Package",
                 Arg.Any<CancellationToken>()
             )
@@ -114,7 +117,7 @@ public sealed class PackageRegistryTests : LoggingTestBase
         IPackageMetadataFetcher metadataFetcher = GetSubstitute<IPackageMetadataFetcher>();
 
         metadataFetcher
-            .GetMetadataAsync(Arg.Any<PackageSource>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .GetMetadataAsync(Arg.Any<SourceRepository>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(
                 Task.FromException<IEnumerable<IPackageSearchMetadata>>(new HttpRequestException("feed unreachable"))
             );
@@ -154,7 +157,7 @@ public sealed class PackageRegistryTests : LoggingTestBase
         IPackageMetadataFetcher metadataFetcher = GetSubstitute<IPackageMetadataFetcher>();
 
         metadataFetcher
-            .GetMetadataAsync(Arg.Any<PackageSource>(), packageId: "Test.Package", Arg.Any<CancellationToken>())
+            .GetMetadataAsync(Arg.Any<SourceRepository>(), packageId: "Test.Package", Arg.Any<CancellationToken>())
             .Returns(_ => Task.FromResult(MetadataFor(packageId: "Test.Package", version: "1.2.3")));
 
         PackageRegistry registry = this.CreateRegistry(metadataFetcher);
