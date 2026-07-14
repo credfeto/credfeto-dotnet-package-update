@@ -7,7 +7,9 @@ using Credfeto.Package.Exceptions;
 using Credfeto.Package.Services;
 using FunFair.Test.Common;
 using Microsoft.Extensions.Logging;
+using NonBlocking;
 using NSubstitute;
+using NuGet.Configuration;
 using NuGet.Packaging.Core;
 using NuGet.Protocol.Core.Types;
 using NuGet.Versioning;
@@ -20,6 +22,7 @@ public sealed class PackageRegistryTests : LoggingTestBase
     private const string DeadSourceUrl = "https://dead.example/index.json";
     private const string AliveSourceUrl = "https://alive.example/index.json";
     private const string DeadSourceUrl2 = "https://dead-two.example/index.json";
+    private const string TestPackageId = "Test.Package";
 
     public PackageRegistryTests(ITestOutputHelper output)
         : base(output) { }
@@ -29,6 +32,11 @@ public sealed class PackageRegistryTests : LoggingTestBase
         ILogger<PackageRegistry> logger = this.GetTypedLogger<PackageRegistry>();
 
         return new(metadataFetcher: metadataFetcher, logger: logger);
+    }
+
+    private static PackageSource CreateTestPackageSource()
+    {
+        return new(source: AliveSourceUrl, name: "Alive", isEnabled: true, isOfficial: true, isPersistable: true);
     }
 
     private static IEnumerable<IPackageSearchMetadata> MetadataFor(string packageId, string version)
@@ -171,5 +179,88 @@ public sealed class PackageRegistryTests : LoggingTestBase
         PackageVersion found = Assert.Single(result);
         Assert.Equal(expected: "Test.Package", actual: found.PackageId);
         Assert.Equal(expected: NuGetVersion.Parse("1.2.3"), actual: found.Version);
+    }
+
+    [Fact]
+    public void RegisterFoundPackageVersion_WhenKeyNotPresent_AddsCandidate()
+    {
+        ConcurrentDictionary<string, NuGetVersion> found = new(StringComparer.Ordinal);
+        PackageRegistry registry = this.CreateRegistry(GetSubstitute<IPackageMetadataFetcher>());
+
+        registry.RegisterFoundPackageVersion(
+            packageSource: CreateTestPackageSource(),
+            found: found,
+            packageId: TestPackageId,
+            candidateVersion: NuGetVersion.Parse("1.2.3")
+        );
+
+        Assert.Equal(expected: NuGetVersion.Parse("1.2.3"), actual: found[TestPackageId]);
+    }
+
+    [Theory]
+    [InlineData("1.0.0", "2.0.0", "2.0.0")] // higher candidate replaces the stored version
+    [InlineData("2.0.0", "1.0.0", "2.0.0")] // lower candidate is discarded
+    [InlineData("1.0.0", "1.0.0", "1.0.0")] // equal candidate is a no-op
+    public void RegisterFoundPackageVersion_WhenKeyAlreadyPresent_KeepsTheHigherVersion(
+        string existing,
+        string candidate,
+        string expected
+    )
+    {
+        ConcurrentDictionary<string, NuGetVersion> found = new(StringComparer.Ordinal);
+        found[TestPackageId] = NuGetVersion.Parse(existing);
+        PackageRegistry registry = this.CreateRegistry(GetSubstitute<IPackageMetadataFetcher>());
+
+        registry.RegisterFoundPackageVersion(
+            packageSource: CreateTestPackageSource(),
+            found: found,
+            packageId: TestPackageId,
+            candidateVersion: NuGetVersion.Parse(candidate)
+        );
+
+        Assert.Equal(expected: NuGetVersion.Parse(expected), actual: found[TestPackageId]);
+    }
+
+    [Fact]
+    public async Task RegisterFoundPackageVersion_WhenCalledConcurrently_NeverDropsTheHighestVersion()
+    {
+        PackageRegistry registry = this.CreateRegistry(GetSubstitute<IPackageMetadataFetcher>());
+        PackageSource source = CreateTestPackageSource();
+        NuGetVersion lowestVersion = NuGetVersion.Parse("1.0.0");
+        NuGetVersion middleVersion = NuGetVersion.Parse("1.5.0");
+        NuGetVersion highestVersion = NuGetVersion.Parse("2.0.0");
+
+        CancellationToken cancellationToken = this.CancellationToken();
+
+        for (int iteration = 0; iteration < 200; ++iteration)
+        {
+            ConcurrentDictionary<string, NuGetVersion> found = new(StringComparer.Ordinal);
+            found[TestPackageId] = lowestVersion;
+
+            await Task.WhenAll(
+                Task.Run(
+                    () =>
+                        registry.RegisterFoundPackageVersion(
+                            packageSource: source,
+                            found: found,
+                            packageId: TestPackageId,
+                            candidateVersion: highestVersion
+                        ),
+                    cancellationToken
+                ),
+                Task.Run(
+                    () =>
+                        registry.RegisterFoundPackageVersion(
+                            packageSource: source,
+                            found: found,
+                            packageId: TestPackageId,
+                            candidateVersion: middleVersion
+                        ),
+                    cancellationToken
+                )
+            );
+
+            Assert.Equal(expected: highestVersion, actual: found[TestPackageId]);
+        }
     }
 }
