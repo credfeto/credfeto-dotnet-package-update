@@ -21,10 +21,10 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 ### Changed
 - Updated DotNet SDK to 10.0.300
 - Renamed Credfeto.Package.Test to Credfeto.Package.Tests to follow the .Tests naming convention
-- SDK - Updated DotNet SDK to 10.0.301
 - Use PackageMetadataResource.GetMetadataAsync for exact package id lookup instead of SearchAsync with take: int.MaxValue
 - Avoid re-parsing and re-sorting all package versions on every package update; check package presence directly against the raw XML elements instead
 - Reuse each NuGet source's SourceRepository across package lookups instead of rebuilding it per package, restoring NuGet's resource and HTTP caching.
+- SDK - Updated DotNet SDK to 10.0.302
 ### Deprecated
 ### Removed
 ### Deployment Changes
