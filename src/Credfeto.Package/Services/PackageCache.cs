@@ -143,11 +143,10 @@ public sealed class PackageCache : IPackageCache
         }
         else
         {
-            if (this._cache.TryAdd(key: packageVersion.PackageId, value: packageVersion))
-            {
-                this._logger.AddingPackageToCache(packageId: packageVersion.PackageId, version: packageVersion.Version);
-                this._changed = true;
-            }
+            // single-threaded per the comment above, so TryAdd cannot fail here - no need to guard it
+            this._cache.TryAdd(key: packageVersion.PackageId, value: packageVersion);
+            this._logger.AddingPackageToCache(packageId: packageVersion.PackageId, version: packageVersion.Version);
+            this._changed = true;
         }
     }
 }
