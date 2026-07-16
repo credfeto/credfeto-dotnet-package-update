@@ -9,7 +9,6 @@ using Microsoft.Extensions.Logging;
 using NonBlocking;
 using NuGet.Configuration;
 using NuGet.Protocol.Core.Types;
-using NuGet.Versioning;
 
 namespace Credfeto.Package.Services;
 
@@ -99,7 +98,10 @@ public sealed class PackageRegistry : IPackageRegistry
         PackageVersion candidate
     )
     {
-        if (found.TryGetValue(key: candidate.PackageId, out PackageVersion? existing) && existing.Version >= candidate.Version)
+        if (
+            found.TryGetValue(key: candidate.PackageId, out PackageVersion? existing)
+            && existing.Version >= candidate.Version
+        )
         {
             return;
         }
@@ -139,7 +141,11 @@ public sealed class PackageRegistry : IPackageRegistry
 
         if (outcomes.Any(outcome => outcome.Failure is not null))
         {
-            this.ThrowForFailedSources(sourceRepositories: sourceRepositories, packageId: packageId, outcomes: outcomes);
+            this.ThrowForFailedSources(
+                sourceRepositories: sourceRepositories,
+                packageId: packageId,
+                outcomes: outcomes
+            );
         }
 
         // sources ran concurrently above; the Task.WhenAll barrier means every source's results are
