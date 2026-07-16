@@ -215,6 +215,36 @@ public sealed class ProjectTests : LoggingFolderCleanupTestBase
     }
 
     [Fact]
+    public async Task Save_WhenChanged_WritesFileEndingWithExactlyOneNewLine()
+    {
+        IProject? project = await this.LoadProjectAsync(
+            """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <ItemGroup>
+                <PackageReference Include="Some.Package" Version="1.0.0" />
+              </ItemGroup>
+            </Project>
+            """
+        );
+
+        Assert.NotNull(project);
+        Assert.True(
+            project.UpdatePackage(new(packageId: "Some.Package", new NuGetVersion("2.0.0"))),
+            userMessage: "Expected update to report a change"
+        );
+
+        bool saved = project.Save();
+
+        Assert.True(saved, userMessage: "Expected the changed project to be saved");
+        byte[] bytes = await File.ReadAllBytesAsync(project.FileName, cancellationToken: this.CancellationToken());
+
+        Assert.Equal(expected: (byte)'\n', actual: bytes[^1]);
+        Assert.NotEqual(expected: (byte)'\n', actual: bytes[^2]);
+        Assert.NotEqual(expected: (byte)'\r', actual: bytes[^2]);
+        Assert.Equal(expected: [0xEF, 0xBB, 0xBF], actual: bytes[..3]);
+    }
+
+    [Fact]
     public async Task UpdatePackage_WhenPackagePresentOnlyViaSdkAttribute_ReturnsTrueAndUpdatesSdk()
     {
         IProject? project = await this.LoadProjectAsync(
