@@ -233,7 +233,7 @@ public sealed class ProjectTests : LoggingFolderCleanupTestBase
             userMessage: "Expected update to report a change"
         );
 
-        bool saved = project.Save();
+        bool saved = await project.SaveAsync(this.CancellationToken());
 
         Assert.True(saved, userMessage: "Expected the changed project to be saved");
         byte[] bytes = await File.ReadAllBytesAsync(project.FileName, cancellationToken: this.CancellationToken());

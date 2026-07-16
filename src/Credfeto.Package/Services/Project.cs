@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Xml;
 using Credfeto.Extensions.Linq;
 using NuGet.Versioning;
@@ -53,27 +55,27 @@ internal sealed class Project : IProject
         return updated;
     }
 
-    public bool Save()
+    public async ValueTask<bool> SaveAsync(CancellationToken cancellationToken)
     {
         if (!this.Changed)
         {
             return false;
         }
 
-        using (MemoryStream stream = new())
+        await using (MemoryStream stream = new())
         {
-            using (XmlWriter writer = XmlWriter.Create(output: stream, settings: WriterSettings))
+            await using (XmlWriter writer = XmlWriter.Create(output: stream, settings: WriterSettings))
             {
                 this._doc.Save(writer);
 
                 // XmlDocument never writes anything after the root element's closing tag, so this is
                 // always the file's last byte - no need to check for or trim any existing trailing newline.
-                writer.WriteWhitespace("\n");
+                await writer.WriteWhitespaceAsync("\n");
             }
 
             // Render fully in memory first so a serialization failure can never truncate an
             // already-good file on disk.
-            File.WriteAllBytes(path: this.FileName, bytes: stream.ToArray());
+            await File.WriteAllBytesAsync(path: this.FileName, bytes: stream.ToArray(), cancellationToken: cancellationToken);
         }
 
         // explicitly mark as not saved
