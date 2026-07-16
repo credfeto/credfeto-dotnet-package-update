@@ -17,7 +17,7 @@ namespace Credfeto.Package.Services;
 
 public sealed class PackageCache : IPackageCache
 {
-    private readonly ConcurrentDictionary<string, NuGetVersion> _cache;
+    private readonly ConcurrentDictionary<string, PackageVersion> _cache;
     private readonly ILogger<PackageCache> _logger;
     private readonly JsonTypeInfo<CacheItems> _typeInfo;
     private bool _changed;
@@ -51,7 +51,10 @@ public sealed class PackageCache : IPackageCache
             )
             {
                 this._logger.LoadedPackageVersionFromCache(packageId: packageId, version: version);
-                this._cache.TryAdd(key: packageId, NuGetVersion.Parse(version));
+                this._cache.TryAdd(
+                    key: packageId,
+                    new PackageVersion(packageId: packageId, version: NuGetVersion.Parse(version))
+                );
             }
         }
     }
@@ -65,10 +68,12 @@ public sealed class PackageCache : IPackageCache
 
         this._logger.SavingCache(fileName);
 
+        // key off the value's package id, not the dictionary key - the key text is frozen to whichever
+        // source was merged first, while the value always carries the winning source's casing (see #595)
         CacheItems toWrite = new(
             this._cache.ToDictionary(
-                keySelector: x => x.Key,
-                elementSelector: x => x.Value.ToString(),
+                keySelector: x => x.Value.PackageId,
+                elementSelector: x => x.Value.Version.ToString(),
                 comparer: StringComparer.OrdinalIgnoreCase
             )
         );
@@ -105,9 +110,9 @@ public sealed class PackageCache : IPackageCache
         this._cache.Clear();
     }
 
-    private static IReadOnlyList<PackageVersion> BuildVersions(IEnumerable<KeyValuePair<string, NuGetVersion>> source)
+    private static IReadOnlyList<PackageVersion> BuildVersions(IEnumerable<KeyValuePair<string, PackageVersion>> source)
     {
-        return [.. source.Select(x => new PackageVersion(packageId: x.Key, version: x.Value))];
+        return [.. source.Select(x => x.Value)];
     }
 
     [DoesNotReturn]
@@ -118,30 +123,27 @@ public sealed class PackageCache : IPackageCache
 
     private void UpdateCache(PackageVersion packageVersion)
     {
-        if (this._cache.TryGetValue(key: packageVersion.PackageId, out NuGetVersion? existing))
+        if (this._cache.TryGetValue(key: packageVersion.PackageId, out PackageVersion? existing))
         {
-            if (existing < packageVersion.Version)
+            if (existing.Version < packageVersion.Version)
             {
-                if (
-                    this._cache.TryUpdate(
-                        key: packageVersion.PackageId,
-                        newValue: packageVersion.Version,
-                        comparisonValue: existing
-                    )
-                )
-                {
-                    this._logger.UpdatingPackageVersion(
-                        packageId: packageVersion.PackageId,
-                        existing: existing,
-                        version: packageVersion.Version
-                    );
-                    this._changed = true;
-                }
+                // plain indexer set, not TryUpdate's compare-and-swap: PackageVersion equality compares
+                // PackageId only (ignoring Version), so a version-based CAS comparisonValue would no
+                // longer mean what it looks like. Safe because SetVersions/UpdateCache is only ever
+                // called sequentially from PackageUpdater.UpdateAsync - no concurrent writers.
+                this._cache[packageVersion.PackageId] = packageVersion;
+
+                this._logger.UpdatingPackageVersion(
+                    packageId: packageVersion.PackageId,
+                    existing: existing.Version,
+                    version: packageVersion.Version
+                );
+                this._changed = true;
             }
         }
         else
         {
-            if (this._cache.TryAdd(key: packageVersion.PackageId, value: packageVersion.Version))
+            if (this._cache.TryAdd(key: packageVersion.PackageId, value: packageVersion))
             {
                 this._logger.AddingPackageToCache(packageId: packageVersion.PackageId, version: packageVersion.Version);
                 this._changed = true;

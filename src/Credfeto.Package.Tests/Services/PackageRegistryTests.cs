@@ -259,23 +259,56 @@ public sealed class PackageRegistryTests : LoggingTestBase
         );
 
         PackageVersion found = Assert.Single(result);
+        Assert.Equal(expected: "foo.bar", actual: found.PackageId);
+        Assert.Equal(expected: NuGetVersion.Parse("2.0.0"), actual: found.Version);
+    }
+
+    [Fact]
+    public async Task FindPackagesAsync_WhenLaterSourceHasLowerVersionWithDifferentCasing_KeepsWinnerCasing()
+    {
+        IPackageMetadataFetcher metadataFetcher = GetSubstitute<IPackageMetadataFetcher>();
+
+        MockPackageMetadataFetcherGetMetadata(
+            metadataFetcher,
+            sourceUrl: AliveSourceUrl,
+            requestedPackageId: "Foo.Bar",
+            returnedPackageId: "Foo.Bar",
+            version: "2.0.0"
+        );
+        MockPackageMetadataFetcherGetMetadata(
+            metadataFetcher,
+            sourceUrl: DeadSourceUrl2,
+            requestedPackageId: "Foo.Bar",
+            returnedPackageId: "foo.bar",
+            version: "1.0.0"
+        );
+
+        PackageRegistry registry = this.CreateRegistry(metadataFetcher);
+
+        IReadOnlyList<PackageVersion> result = await registry.FindPackagesAsync(
+            packageIds: ["Foo.Bar"],
+            packageSources: [AliveSourceUrl, DeadSourceUrl2],
+            cancellationToken: this.CancellationToken()
+        );
+
+        PackageVersion found = Assert.Single(result);
+        Assert.Equal(expected: "Foo.Bar", actual: found.PackageId);
         Assert.Equal(expected: NuGetVersion.Parse("2.0.0"), actual: found.Version);
     }
 
     [Fact]
     public void RegisterFoundPackageVersion_WhenKeyNotPresent_AddsCandidate()
     {
-        Dictionary<string, NuGetVersion> found = new(StringComparer.Ordinal);
+        Dictionary<string, PackageVersion> found = new(StringComparer.Ordinal);
         PackageRegistry registry = this.CreateRegistry(GetSubstitute<IPackageMetadataFetcher>());
 
         registry.RegisterFoundPackageVersion(
             packageSource: CreateTestPackageSource(),
             found: found,
-            packageId: TestPackageId,
-            candidateVersion: NuGetVersion.Parse("1.2.3")
+            candidate: new PackageVersion(packageId: TestPackageId, NuGetVersion.Parse("1.2.3"))
         );
 
-        Assert.Equal(expected: NuGetVersion.Parse("1.2.3"), actual: found[TestPackageId]);
+        Assert.Equal(expected: NuGetVersion.Parse("1.2.3"), actual: found[TestPackageId].Version);
     }
 
     [Theory]
@@ -288,16 +321,18 @@ public sealed class PackageRegistryTests : LoggingTestBase
         string expected
     )
     {
-        Dictionary<string, NuGetVersion> found = new(StringComparer.Ordinal) { [TestPackageId] = NuGetVersion.Parse(existing) };
+        Dictionary<string, PackageVersion> found = new(StringComparer.Ordinal)
+        {
+            [TestPackageId] = new(packageId: TestPackageId, NuGetVersion.Parse(existing)),
+        };
         PackageRegistry registry = this.CreateRegistry(GetSubstitute<IPackageMetadataFetcher>());
 
         registry.RegisterFoundPackageVersion(
             packageSource: CreateTestPackageSource(),
             found: found,
-            packageId: TestPackageId,
-            candidateVersion: NuGetVersion.Parse(candidate)
+            candidate: new PackageVersion(packageId: TestPackageId, NuGetVersion.Parse(candidate))
         );
 
-        Assert.Equal(expected: NuGetVersion.Parse(expected), actual: found[TestPackageId]);
+        Assert.Equal(expected: NuGetVersion.Parse(expected), actual: found[TestPackageId].Version);
     }
 }
