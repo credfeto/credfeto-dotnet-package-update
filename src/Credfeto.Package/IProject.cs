@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Credfeto.Package;
 
@@ -12,5 +14,5 @@ public interface IProject
 
     bool UpdatePackage(PackageVersion package);
 
-    bool Save();
+    ValueTask<bool> SaveAsync(CancellationToken cancellationToken);
 }
