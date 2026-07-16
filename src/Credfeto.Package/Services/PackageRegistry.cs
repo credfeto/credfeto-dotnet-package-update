@@ -157,7 +157,7 @@ public sealed class PackageRegistry : IPackageRegistry
         (IReadOnlyList<PackageVersion> Found, Exception? Failure)[] outcomes
     )
     {
-        Dictionary<string, NuGetVersion> found = new(StringComparer.Ordinal);
+        Dictionary<string, NuGetVersion> found = new(StringComparer.OrdinalIgnoreCase);
 
         for (int index = 0; index < sourceRepositories.Count; ++index)
         {
