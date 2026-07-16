@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Xml;
@@ -10,6 +11,8 @@ namespace Credfeto.Package.Services;
 
 internal sealed class Project : IProject
 {
+    private const byte NewLine = (byte)'\n';
+
     private static readonly XmlWriterSettings WriterSettings = new()
     {
         Async = true,
@@ -18,6 +21,7 @@ internal sealed class Project : IProject
         OmitXmlDeclaration = true,
         Encoding = Encoding.UTF8,
         NewLineHandling = NewLineHandling.None,
+        NewLineChars = "\n",
         NewLineOnAttributes = false,
         NamespaceHandling = NamespaceHandling.OmitDuplicates,
         CloseOutput = true,
@@ -59,14 +63,36 @@ internal sealed class Project : IProject
             return false;
         }
 
-        using (XmlWriter writer = XmlWriter.Create(outputFileName: this.FileName, settings: WriterSettings))
+        using (MemoryStream stream = new())
         {
-            this._doc.Save(writer);
-            // explicitly mark as not saved
-            this.Changed = false;
+            using (XmlWriter writer = XmlWriter.Create(output: stream, settings: WriterSettings))
+            {
+                this._doc.Save(writer);
+            }
 
-            return true;
+            File.WriteAllBytes(path: this.FileName, bytes: EnsureSingleTrailingNewLine(stream.ToArray()));
         }
+
+        // explicitly mark as not saved
+        this.Changed = false;
+
+        return true;
+    }
+
+    private static byte[] EnsureSingleTrailingNewLine(byte[] content)
+    {
+        int end = content.Length;
+
+        while (end > 0 && (content[end - 1] == NewLine || content[end - 1] == (byte)'\r'))
+        {
+            --end;
+        }
+
+        byte[] trimmed = new byte[end + 1];
+        Array.Copy(sourceArray: content, destinationArray: trimmed, length: end);
+        trimmed[end] = NewLine;
+
+        return trimmed;
     }
 
     private bool UpdatePackageFromReference(PackageVersion package)
