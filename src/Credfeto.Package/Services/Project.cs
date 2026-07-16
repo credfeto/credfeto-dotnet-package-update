@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Text;
 using System.Xml;
@@ -11,8 +10,6 @@ namespace Credfeto.Package.Services;
 
 internal sealed class Project : IProject
 {
-    private const byte NewLine = (byte)'\n';
-
     private static readonly XmlWriterSettings WriterSettings = new()
     {
         Async = true,
@@ -24,7 +21,7 @@ internal sealed class Project : IProject
         NewLineChars = "\n",
         NewLineOnAttributes = false,
         NamespaceHandling = NamespaceHandling.OmitDuplicates,
-        CloseOutput = false,
+        CloseOutput = true,
     };
 
     private readonly XmlDocument _doc;
@@ -63,33 +60,19 @@ internal sealed class Project : IProject
             return false;
         }
 
-        using (MemoryStream stream = new())
+        using (XmlWriter writer = XmlWriter.Create(outputFileName: this.FileName, settings: WriterSettings))
         {
-            using (XmlWriter writer = XmlWriter.Create(output: stream, settings: WriterSettings))
-            {
-                this._doc.Save(writer);
-            }
+            this._doc.Save(writer);
 
-            File.WriteAllBytes(
-                path: this.FileName,
-                bytes: EnsureSingleTrailingNewLine(buffer: stream.GetBuffer(), length: (int)stream.Length)
-            );
+            // XmlDocument never writes anything after the root element's closing tag, so this is
+            // always the file's last byte - no need to check for or trim any existing trailing newline.
+            writer.WriteWhitespace("\n");
         }
 
         // explicitly mark as not saved
         this.Changed = false;
 
         return true;
-    }
-
-    private static byte[] EnsureSingleTrailingNewLine(byte[] buffer, int length)
-    {
-        ReadOnlySpan<byte> trimmed = buffer.AsSpan(start: 0, length: length).TrimEnd("\r\n"u8);
-        byte[] result = new byte[trimmed.Length + 1];
-        trimmed.CopyTo(result);
-        result[^1] = NewLine;
-
-        return result;
     }
 
     private bool UpdatePackageFromReference(PackageVersion package)
