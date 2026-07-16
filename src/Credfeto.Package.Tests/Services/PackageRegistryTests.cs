@@ -18,10 +18,10 @@ namespace Credfeto.Package.Tests.Services;
 
 public sealed class PackageRegistryTests : LoggingTestBase
 {
-    private const string DeadSourceUrl = "https://dead.example/index.json";
-    private const string AliveSourceUrl = "https://alive.example/index.json";
-    private const string DeadSourceUrl2 = "https://dead-two.example/index.json";
-    private const string TestPackageId = "Test.Package";
+    private const string DEAD_SOURCE_URL = "https://dead.example/index.json";
+    private const string ALIVE_SOURCE_URL = "https://alive.example/index.json";
+    private const string DEAD_SOURCE_URL_2 = "https://dead-two.example/index.json";
+    private const string TEST_PACKAGE_ID = "Test.Package";
 
     public PackageRegistryTests(ITestOutputHelper output)
         : base(output) { }
@@ -35,7 +35,7 @@ public sealed class PackageRegistryTests : LoggingTestBase
 
     private static PackageSource CreateTestPackageSource()
     {
-        return new(source: AliveSourceUrl, name: "Alive", isEnabled: true, isOfficial: true, isPersistable: true);
+        return new(source: ALIVE_SOURCE_URL, name: "Alive", isEnabled: true, isOfficial: true, isPersistable: true);
     }
 
     private static IEnumerable<IPackageSearchMetadata> MetadataFor(string packageId, string version)
@@ -82,7 +82,7 @@ public sealed class PackageRegistryTests : LoggingTestBase
         metadataFetcher
             .GetMetadataAsync(
                 Arg.Is<SourceRepository>(sourceRepository =>
-                    StringComparer.Ordinal.Equals(sourceRepository.PackageSource.Source, DeadSourceUrl)
+                    StringComparer.Ordinal.Equals(sourceRepository.PackageSource.Source, DEAD_SOURCE_URL)
                 ),
                 packageId: "Test.Package",
                 Arg.Any<CancellationToken>()
@@ -93,7 +93,7 @@ public sealed class PackageRegistryTests : LoggingTestBase
 
         MockPackageMetadataFetcherGetMetadata(
             metadataFetcher,
-            sourceUrl: AliveSourceUrl,
+            sourceUrl: ALIVE_SOURCE_URL,
             requestedPackageId: "Test.Package",
             returnedPackageId: "Test.Package",
             version: "1.2.3"
@@ -105,7 +105,7 @@ public sealed class PackageRegistryTests : LoggingTestBase
             registry
                 .FindPackagesAsync(
                     packageIds: ["Test.Package"],
-                    packageSources: [DeadSourceUrl, AliveSourceUrl],
+                    packageSources: [DEAD_SOURCE_URL, ALIVE_SOURCE_URL],
                     cancellationToken: this.CancellationToken()
                 )
                 .AsTask()
@@ -152,7 +152,7 @@ public sealed class PackageRegistryTests : LoggingTestBase
             registry
                 .FindPackagesAsync(
                     packageIds: ["Test.Package"],
-                    packageSources: [DeadSourceUrl, DeadSourceUrl2],
+                    packageSources: [DEAD_SOURCE_URL, DEAD_SOURCE_URL_2],
                     cancellationToken: this.CancellationToken()
                 )
                 .AsTask()
@@ -188,7 +188,7 @@ public sealed class PackageRegistryTests : LoggingTestBase
 
         IReadOnlyList<PackageVersion> result = await registry.FindPackagesAsync(
             packageIds: ["Test.Package"],
-            packageSources: [AliveSourceUrl],
+            packageSources: [ALIVE_SOURCE_URL],
             cancellationToken: this.CancellationToken()
         );
 
@@ -204,14 +204,14 @@ public sealed class PackageRegistryTests : LoggingTestBase
 
         MockPackageMetadataFetcherGetMetadata(
             metadataFetcher,
-            sourceUrl: AliveSourceUrl,
+            sourceUrl: ALIVE_SOURCE_URL,
             requestedPackageId: "Test.Package",
             returnedPackageId: "Test.Package",
             version: "1.5.0"
         );
         MockPackageMetadataFetcherGetMetadata(
             metadataFetcher,
-            sourceUrl: DeadSourceUrl2,
+            sourceUrl: DEAD_SOURCE_URL_2,
             requestedPackageId: "Test.Package",
             returnedPackageId: "Test.Package",
             version: "2.0.0"
@@ -221,7 +221,7 @@ public sealed class PackageRegistryTests : LoggingTestBase
 
         IReadOnlyList<PackageVersion> result = await registry.FindPackagesAsync(
             packageIds: ["Test.Package"],
-            packageSources: [AliveSourceUrl, DeadSourceUrl2],
+            packageSources: [ALIVE_SOURCE_URL, DEAD_SOURCE_URL_2],
             cancellationToken: this.CancellationToken()
         );
 
@@ -237,14 +237,14 @@ public sealed class PackageRegistryTests : LoggingTestBase
 
         MockPackageMetadataFetcherGetMetadata(
             metadataFetcher,
-            sourceUrl: AliveSourceUrl,
+            sourceUrl: ALIVE_SOURCE_URL,
             requestedPackageId: "Foo.Bar",
             returnedPackageId: "Foo.Bar",
             version: "1.0.0"
         );
         MockPackageMetadataFetcherGetMetadata(
             metadataFetcher,
-            sourceUrl: DeadSourceUrl2,
+            sourceUrl: DEAD_SOURCE_URL_2,
             requestedPackageId: "Foo.Bar",
             returnedPackageId: "foo.bar",
             version: "2.0.0"
@@ -254,7 +254,7 @@ public sealed class PackageRegistryTests : LoggingTestBase
 
         IReadOnlyList<PackageVersion> result = await registry.FindPackagesAsync(
             packageIds: ["Foo.Bar"],
-            packageSources: [AliveSourceUrl, DeadSourceUrl2],
+            packageSources: [ALIVE_SOURCE_URL, DEAD_SOURCE_URL_2],
             cancellationToken: this.CancellationToken()
         );
 
@@ -270,14 +270,14 @@ public sealed class PackageRegistryTests : LoggingTestBase
 
         MockPackageMetadataFetcherGetMetadata(
             metadataFetcher,
-            sourceUrl: AliveSourceUrl,
+            sourceUrl: ALIVE_SOURCE_URL,
             requestedPackageId: "Foo.Bar",
             returnedPackageId: "Foo.Bar",
             version: "2.0.0"
         );
         MockPackageMetadataFetcherGetMetadata(
             metadataFetcher,
-            sourceUrl: DeadSourceUrl2,
+            sourceUrl: DEAD_SOURCE_URL_2,
             requestedPackageId: "Foo.Bar",
             returnedPackageId: "foo.bar",
             version: "1.0.0"
@@ -287,7 +287,7 @@ public sealed class PackageRegistryTests : LoggingTestBase
 
         IReadOnlyList<PackageVersion> result = await registry.FindPackagesAsync(
             packageIds: ["Foo.Bar"],
-            packageSources: [AliveSourceUrl, DeadSourceUrl2],
+            packageSources: [ALIVE_SOURCE_URL, DEAD_SOURCE_URL_2],
             cancellationToken: this.CancellationToken()
         );
 
@@ -305,10 +305,10 @@ public sealed class PackageRegistryTests : LoggingTestBase
         registry.RegisterFoundPackageVersion(
             packageSource: CreateTestPackageSource(),
             found: found,
-            candidate: new PackageVersion(packageId: TestPackageId, NuGetVersion.Parse("1.2.3"))
+            candidate: new PackageVersion(packageId: TEST_PACKAGE_ID, NuGetVersion.Parse("1.2.3"))
         );
 
-        Assert.Equal(expected: NuGetVersion.Parse("1.2.3"), actual: found[TestPackageId].Version);
+        Assert.Equal(expected: NuGetVersion.Parse("1.2.3"), actual: found[TEST_PACKAGE_ID].Version);
     }
 
     [Theory]
@@ -323,16 +323,16 @@ public sealed class PackageRegistryTests : LoggingTestBase
     {
         Dictionary<string, PackageVersion> found = new(StringComparer.Ordinal)
         {
-            [TestPackageId] = new(packageId: TestPackageId, NuGetVersion.Parse(existing)),
+            [TEST_PACKAGE_ID] = new(packageId: TEST_PACKAGE_ID, NuGetVersion.Parse(existing)),
         };
         PackageRegistry registry = this.CreateRegistry(GetSubstitute<IPackageMetadataFetcher>());
 
         registry.RegisterFoundPackageVersion(
             packageSource: CreateTestPackageSource(),
             found: found,
-            candidate: new PackageVersion(packageId: TestPackageId, NuGetVersion.Parse(candidate))
+            candidate: new PackageVersion(packageId: TEST_PACKAGE_ID, NuGetVersion.Parse(candidate))
         );
 
-        Assert.Equal(expected: NuGetVersion.Parse(expected), actual: found[TestPackageId].Version);
+        Assert.Equal(expected: NuGetVersion.Parse(expected), actual: found[TEST_PACKAGE_ID].Version);
     }
 }
