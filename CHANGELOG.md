@@ -19,6 +19,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Avoid re-querying the registry for every package when only some package ids are missing from the version cache
 - NuGet source failures during package updates are now reported individually, naming every failed source and reason, instead of a single opaque exception
 - Concurrent package version lookups across NuGet feeds no longer silently drop the highest version when two feeds race to update the same package
+- Saved .csproj files now always end with exactly one newline, matching pre-commit's end-of-file-fixer expectation
 ### Changed
 - Updated DotNet SDK to 10.0.300
 - Renamed Credfeto.Package.Test to Credfeto.Package.Tests to follow the .Tests naming convention
