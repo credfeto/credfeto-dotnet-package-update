@@ -122,6 +122,20 @@ public sealed class PackageCacheTests : LoggingFolderCleanupTestBase
     }
 
     [Fact]
+    public void GetVersions_WithDuplicateAndCaseVariantIds_ReturnsEachMatchOnce()
+    {
+        PackageCache cache = this.CreateCache();
+        PackageVersion packageVersion = new(packageId: "Test.Package", version: new NuGetVersion("1.0.0"));
+
+        cache.SetVersions([packageVersion]);
+
+        IReadOnlyList<PackageVersion> result = cache.GetVersions(["Test.Package", "Test.Package", "test.package"]);
+
+        Assert.Single(result);
+        Assert.Equal(expected: "Test.Package", actual: result[0].PackageId);
+    }
+
+    [Fact]
     public void SetVersions_UpdatesExistingPackageWithHigherVersion()
     {
         PackageCache cache = this.CreateCache();

@@ -92,10 +92,11 @@ public sealed class PackageCache : IPackageCache
     public IReadOnlyList<PackageVersion> GetVersions(IReadOnlyList<string> packageIds)
     {
         List<PackageVersion> found = new(packageIds.Count);
+        HashSet<string> seen = new(packageIds.Count, StringComparer.OrdinalIgnoreCase);
 
         foreach (string packageId in packageIds)
         {
-            if (this._cache.TryGetValue(key: packageId, out PackageVersion? version))
+            if (seen.Add(packageId) && this._cache.TryGetValue(key: packageId, out PackageVersion? version))
             {
                 found.Add(version);
             }
