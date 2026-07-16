@@ -65,12 +65,18 @@ internal sealed class Project : IProject
 
         using (MemoryStream stream = new())
         {
+            byte[] buffer;
+            int length;
+
             using (XmlWriter writer = XmlWriter.Create(output: stream, settings: WriterSettings))
             {
                 this._doc.Save(writer);
+                writer.Flush();
+                buffer = stream.GetBuffer();
+                length = (int)stream.Length;
             }
 
-            File.WriteAllBytes(path: this.FileName, bytes: EnsureSingleTrailingNewLine(stream.ToArray()));
+            File.WriteAllBytes(path: this.FileName, bytes: EnsureSingleTrailingNewLine(buffer: buffer, length: length));
         }
 
         // explicitly mark as not saved
@@ -79,20 +85,14 @@ internal sealed class Project : IProject
         return true;
     }
 
-    private static byte[] EnsureSingleTrailingNewLine(byte[] content)
+    private static byte[] EnsureSingleTrailingNewLine(byte[] buffer, int length)
     {
-        int end = content.Length;
+        ReadOnlySpan<byte> trimmed = buffer.AsSpan(start: 0, length: length).TrimEnd("\r\n"u8);
+        byte[] result = new byte[trimmed.Length + 1];
+        trimmed.CopyTo(result);
+        result[^1] = NewLine;
 
-        while (end > 0 && (content[end - 1] == NewLine || content[end - 1] == (byte)'\r'))
-        {
-            --end;
-        }
-
-        byte[] trimmed = new byte[end + 1];
-        Array.Copy(sourceArray: content, destinationArray: trimmed, length: end);
-        trimmed[end] = NewLine;
-
-        return trimmed;
+        return result;
     }
 
     private bool UpdatePackageFromReference(PackageVersion package)
