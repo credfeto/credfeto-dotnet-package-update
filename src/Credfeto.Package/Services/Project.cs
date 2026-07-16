@@ -73,12 +73,11 @@ internal sealed class Project : IProject
                 await writer.WriteWhitespaceAsync("\n");
             }
 
-            // Render fully in memory first so a serialization failure can never truncate an
+            // Render fully in memory first, so a serialisation failure can never truncate an
             // already-good file on disk.
             await File.WriteAllBytesAsync(path: this.FileName, bytes: stream.ToArray(), cancellationToken: cancellationToken);
         }
 
-        // explicitly mark as not saved
         this.Changed = false;
 
         return true;
