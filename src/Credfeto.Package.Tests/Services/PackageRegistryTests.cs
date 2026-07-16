@@ -46,6 +46,25 @@ public sealed class PackageRegistryTests : LoggingTestBase
         return [metadata];
     }
 
+    private static void MockPackageMetadataFetcherGetMetadata(
+        IPackageMetadataFetcher metadataFetcher,
+        string sourceUrl,
+        string requestedPackageId,
+        string returnedPackageId,
+        string version
+    )
+    {
+        metadataFetcher
+            .GetMetadataAsync(
+                Arg.Is<SourceRepository>(sourceRepository =>
+                    StringComparer.Ordinal.Equals(sourceRepository.PackageSource.Source, sourceUrl)
+                ),
+                packageId: requestedPackageId,
+                Arg.Any<CancellationToken>()
+            )
+            .Returns(_ => Task.FromResult(MetadataFor(packageId: returnedPackageId, version: version)));
+    }
+
     private static (string FailedPart, string SucceededPart) SplitOnSucceeded(string message)
     {
         const string marker = "Succeeded: ";
@@ -72,15 +91,13 @@ public sealed class PackageRegistryTests : LoggingTestBase
                 Task.FromException<IEnumerable<IPackageSearchMetadata>>(new HttpRequestException("feed unreachable"))
             );
 
-        metadataFetcher
-            .GetMetadataAsync(
-                Arg.Is<SourceRepository>(sourceRepository =>
-                    StringComparer.Ordinal.Equals(sourceRepository.PackageSource.Source, AliveSourceUrl)
-                ),
-                packageId: "Test.Package",
-                Arg.Any<CancellationToken>()
-            )
-            .Returns(_ => Task.FromResult(MetadataFor(packageId: "Test.Package", version: "1.2.3")));
+        MockPackageMetadataFetcherGetMetadata(
+            metadataFetcher,
+            sourceUrl: AliveSourceUrl,
+            requestedPackageId: "Test.Package",
+            returnedPackageId: "Test.Package",
+            version: "1.2.3"
+        );
 
         PackageRegistry registry = this.CreateRegistry(metadataFetcher);
 
@@ -185,25 +202,20 @@ public sealed class PackageRegistryTests : LoggingTestBase
     {
         IPackageMetadataFetcher metadataFetcher = GetSubstitute<IPackageMetadataFetcher>();
 
-        metadataFetcher
-            .GetMetadataAsync(
-                Arg.Is<SourceRepository>(sourceRepository =>
-                    StringComparer.Ordinal.Equals(sourceRepository.PackageSource.Source, AliveSourceUrl)
-                ),
-                packageId: "Test.Package",
-                Arg.Any<CancellationToken>()
-            )
-            .Returns(_ => Task.FromResult(MetadataFor(packageId: "Test.Package", version: "1.5.0")));
-
-        metadataFetcher
-            .GetMetadataAsync(
-                Arg.Is<SourceRepository>(sourceRepository =>
-                    StringComparer.Ordinal.Equals(sourceRepository.PackageSource.Source, DeadSourceUrl2)
-                ),
-                packageId: "Test.Package",
-                Arg.Any<CancellationToken>()
-            )
-            .Returns(_ => Task.FromResult(MetadataFor(packageId: "Test.Package", version: "2.0.0")));
+        MockPackageMetadataFetcherGetMetadata(
+            metadataFetcher,
+            sourceUrl: AliveSourceUrl,
+            requestedPackageId: "Test.Package",
+            returnedPackageId: "Test.Package",
+            version: "1.5.0"
+        );
+        MockPackageMetadataFetcherGetMetadata(
+            metadataFetcher,
+            sourceUrl: DeadSourceUrl2,
+            requestedPackageId: "Test.Package",
+            returnedPackageId: "Test.Package",
+            version: "2.0.0"
+        );
 
         PackageRegistry registry = this.CreateRegistry(metadataFetcher);
 
@@ -223,25 +235,20 @@ public sealed class PackageRegistryTests : LoggingTestBase
     {
         IPackageMetadataFetcher metadataFetcher = GetSubstitute<IPackageMetadataFetcher>();
 
-        metadataFetcher
-            .GetMetadataAsync(
-                Arg.Is<SourceRepository>(sourceRepository =>
-                    StringComparer.Ordinal.Equals(sourceRepository.PackageSource.Source, AliveSourceUrl)
-                ),
-                packageId: "Foo.Bar",
-                Arg.Any<CancellationToken>()
-            )
-            .Returns(_ => Task.FromResult(MetadataFor(packageId: "Foo.Bar", version: "1.0.0")));
-
-        metadataFetcher
-            .GetMetadataAsync(
-                Arg.Is<SourceRepository>(sourceRepository =>
-                    StringComparer.Ordinal.Equals(sourceRepository.PackageSource.Source, DeadSourceUrl2)
-                ),
-                packageId: "Foo.Bar",
-                Arg.Any<CancellationToken>()
-            )
-            .Returns(_ => Task.FromResult(MetadataFor(packageId: "foo.bar", version: "2.0.0")));
+        MockPackageMetadataFetcherGetMetadata(
+            metadataFetcher,
+            sourceUrl: AliveSourceUrl,
+            requestedPackageId: "Foo.Bar",
+            returnedPackageId: "Foo.Bar",
+            version: "1.0.0"
+        );
+        MockPackageMetadataFetcherGetMetadata(
+            metadataFetcher,
+            sourceUrl: DeadSourceUrl2,
+            requestedPackageId: "Foo.Bar",
+            returnedPackageId: "foo.bar",
+            version: "2.0.0"
+        );
 
         PackageRegistry registry = this.CreateRegistry(metadataFetcher);
 
