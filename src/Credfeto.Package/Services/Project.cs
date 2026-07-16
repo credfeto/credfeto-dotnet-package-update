@@ -24,7 +24,7 @@ internal sealed class Project : IProject
         NewLineChars = "\n",
         NewLineOnAttributes = false,
         NamespaceHandling = NamespaceHandling.OmitDuplicates,
-        CloseOutput = true,
+        CloseOutput = false,
     };
 
     private readonly XmlDocument _doc;
@@ -65,18 +65,15 @@ internal sealed class Project : IProject
 
         using (MemoryStream stream = new())
         {
-            byte[] buffer;
-            int length;
-
             using (XmlWriter writer = XmlWriter.Create(output: stream, settings: WriterSettings))
             {
                 this._doc.Save(writer);
-                writer.Flush();
-                buffer = stream.GetBuffer();
-                length = (int)stream.Length;
             }
 
-            File.WriteAllBytes(path: this.FileName, bytes: EnsureSingleTrailingNewLine(buffer: buffer, length: length));
+            File.WriteAllBytes(
+                path: this.FileName,
+                bytes: EnsureSingleTrailingNewLine(buffer: stream.GetBuffer(), length: (int)stream.Length)
+            );
         }
 
         // explicitly mark as not saved
