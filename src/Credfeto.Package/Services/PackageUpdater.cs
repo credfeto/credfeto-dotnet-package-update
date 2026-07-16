@@ -123,17 +123,17 @@ public sealed class PackageUpdater : IPackageUpdater
             return [];
         }
 
-        this.SaveChanges(projects);
+        await this.SaveChangesAsync(projects: projects, cancellationToken: cancellationToken);
 
         return [.. updated.Select(p => new PackageVersion(packageId: p.Key, version: p.Value))];
     }
 
-    private void SaveChanges(IReadOnlyList<IProject> projects)
+    private async ValueTask SaveChangesAsync(IReadOnlyList<IProject> projects, CancellationToken cancellationToken)
     {
         foreach (IProject project in projects.Where(project => project.Changed))
         {
             this._logger.SavingProject(project.FileName);
-            project.Save();
+            await project.SaveAsync(cancellationToken);
         }
     }
 
