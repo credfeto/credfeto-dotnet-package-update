@@ -86,14 +86,23 @@ public sealed class PackageCache : IPackageCache
 
     public IReadOnlyList<PackageVersion> GetAll()
     {
-        return BuildVersions(this._cache);
+        return [.. this._cache.Select(x => x.Value)];
     }
 
     public IReadOnlyList<PackageVersion> GetVersions(IReadOnlyList<string> packageIds)
     {
-        return BuildVersions(
-            this._cache.Where(x => packageIds.Contains(value: x.Key, comparer: StringComparer.OrdinalIgnoreCase))
-        );
+        List<PackageVersion> found = new(packageIds.Count);
+        HashSet<string> seen = new(packageIds.Count, StringComparer.OrdinalIgnoreCase);
+
+        foreach (string packageId in packageIds)
+        {
+            if (seen.Add(packageId) && this._cache.TryGetValue(key: packageId, out PackageVersion? version))
+            {
+                found.Add(version);
+            }
+        }
+
+        return found;
     }
 
     public void SetVersions(IReadOnlyList<PackageVersion> matching)
@@ -108,11 +117,6 @@ public sealed class PackageCache : IPackageCache
     {
         this._changed = true;
         this._cache.Clear();
-    }
-
-    private static IReadOnlyList<PackageVersion> BuildVersions(IEnumerable<KeyValuePair<string, PackageVersion>> source)
-    {
-        return [.. source.Select(x => x.Value)];
     }
 
     [DoesNotReturn]

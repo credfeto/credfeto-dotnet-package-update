@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using Credfeto.Package.Services;
@@ -65,6 +66,70 @@ public sealed class PackageCacheTests : LoggingFolderCleanupTestBase
         cache.SetVersions([packageVersion]);
 
         IReadOnlyList<PackageVersion> result = cache.GetVersions(["Test.Package"]);
+
+        Assert.Single(result);
+        Assert.Equal(expected: "Test.Package", actual: result[0].PackageId);
+    }
+
+    [Fact]
+    public void GetVersions_WithMixOfKnownAndUnknownIds_ReturnsOnlyKnownMatches()
+    {
+        PackageCache cache = this.CreateCache();
+        PackageVersion packageVersion = new(packageId: "Test.Package", version: new NuGetVersion("1.0.0"));
+
+        cache.SetVersions([packageVersion]);
+
+        IReadOnlyList<PackageVersion> result = cache.GetVersions(["Test.Package", "Unknown.Package"]);
+
+        Assert.Single(result);
+        Assert.Equal(expected: "Test.Package", actual: result[0].PackageId);
+    }
+
+    [Fact]
+    public void GetVersions_WithOnlyUnknownIds_ReturnsEmptyList()
+    {
+        PackageCache cache = this.CreateCache();
+        PackageVersion packageVersion = new(packageId: "Test.Package", version: new NuGetVersion("1.0.0"));
+
+        cache.SetVersions([packageVersion]);
+
+        IReadOnlyList<PackageVersion> result = cache.GetVersions(["Unknown.Package"]);
+
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public void GetVersions_WithMultiplePackagesCached_ReturnsOnlyRequestedSubset()
+    {
+        PackageCache cache = this.CreateCache();
+        PackageVersion first = new(packageId: "First.Package", version: new NuGetVersion("1.0.0"));
+        PackageVersion second = new(packageId: "Second.Package", version: new NuGetVersion("2.0.0"));
+        PackageVersion third = new(packageId: "Third.Package", version: new NuGetVersion("3.0.0"));
+
+        cache.SetVersions([first, second, third]);
+
+        IReadOnlyList<PackageVersion> result = cache.GetVersions(["Third.Package", "First.Package"]);
+
+        Assert.Equal(expected: 2, actual: result.Count);
+        Assert.Contains(
+            result,
+            p => StringComparer.Ordinal.Equals(p.PackageId, "First.Package") && p.Version == new NuGetVersion("1.0.0")
+        );
+        Assert.Contains(
+            result,
+            p => StringComparer.Ordinal.Equals(p.PackageId, "Third.Package") && p.Version == new NuGetVersion("3.0.0")
+        );
+    }
+
+    [Fact]
+    public void GetVersions_WithDuplicateAndCaseVariantIds_ReturnsEachMatchOnce()
+    {
+        PackageCache cache = this.CreateCache();
+        PackageVersion packageVersion = new(packageId: "Test.Package", version: new NuGetVersion("1.0.0"));
+
+        cache.SetVersions([packageVersion]);
+
+        IReadOnlyList<PackageVersion> result = cache.GetVersions(["Test.Package", "Test.Package", "test.package"]);
 
         Assert.Single(result);
         Assert.Equal(expected: "Test.Package", actual: result[0].PackageId);
