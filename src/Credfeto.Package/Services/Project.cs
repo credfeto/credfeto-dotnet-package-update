@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Xml;
@@ -18,7 +19,6 @@ internal sealed class Project : IProject
         OmitXmlDeclaration = true,
         Encoding = Encoding.UTF8,
         NewLineHandling = NewLineHandling.None,
-        NewLineChars = "\n",
         NewLineOnAttributes = false,
         NamespaceHandling = NamespaceHandling.OmitDuplicates,
         CloseOutput = true,
@@ -60,13 +60,20 @@ internal sealed class Project : IProject
             return false;
         }
 
-        using (XmlWriter writer = XmlWriter.Create(outputFileName: this.FileName, settings: WriterSettings))
+        using (MemoryStream stream = new())
         {
-            this._doc.Save(writer);
+            using (XmlWriter writer = XmlWriter.Create(output: stream, settings: WriterSettings))
+            {
+                this._doc.Save(writer);
 
-            // XmlDocument never writes anything after the root element's closing tag, so this is
-            // always the file's last byte - no need to check for or trim any existing trailing newline.
-            writer.WriteWhitespace("\n");
+                // XmlDocument never writes anything after the root element's closing tag, so this is
+                // always the file's last byte - no need to check for or trim any existing trailing newline.
+                writer.WriteWhitespace("\n");
+            }
+
+            // Render fully in memory first so a serialization failure can never truncate an
+            // already-good file on disk.
+            File.WriteAllBytes(path: this.FileName, bytes: stream.ToArray());
         }
 
         // explicitly mark as not saved
