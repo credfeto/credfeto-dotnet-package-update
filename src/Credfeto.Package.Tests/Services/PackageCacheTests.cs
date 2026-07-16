@@ -103,6 +103,40 @@ public sealed class PackageCacheTests : LoggingFolderCleanupTestBase
     }
 
     [Fact]
+    public void SetVersions_WhenHigherVersionArrivesWithDifferentCasing_UsesWinningCasing()
+    {
+        PackageCache cache = this.CreateCache();
+        PackageVersion v1 = new(packageId: "Foo.Bar", version: new NuGetVersion("1.0.0"));
+        PackageVersion v2 = new(packageId: "foo.bar", version: new NuGetVersion("2.0.0"));
+
+        cache.SetVersions([v1]);
+        cache.SetVersions([v2]);
+
+        IReadOnlyList<PackageVersion> result = cache.GetAll();
+
+        Assert.Single(result);
+        Assert.Equal(expected: "foo.bar", actual: result[0].PackageId);
+        Assert.Equal(expected: new NuGetVersion("2.0.0"), actual: result[0].Version);
+    }
+
+    [Fact]
+    public void SetVersions_WhenLowerVersionArrivesWithDifferentCasing_KeepsExistingCasing()
+    {
+        PackageCache cache = this.CreateCache();
+        PackageVersion v2 = new(packageId: "Foo.Bar", version: new NuGetVersion("2.0.0"));
+        PackageVersion v1 = new(packageId: "foo.bar", version: new NuGetVersion("1.0.0"));
+
+        cache.SetVersions([v2]);
+        cache.SetVersions([v1]);
+
+        IReadOnlyList<PackageVersion> result = cache.GetAll();
+
+        Assert.Single(result);
+        Assert.Equal(expected: "Foo.Bar", actual: result[0].PackageId);
+        Assert.Equal(expected: new NuGetVersion("2.0.0"), actual: result[0].Version);
+    }
+
+    [Fact]
     public void Reset_ClearsCache()
     {
         PackageCache cache = this.CreateCache();
@@ -196,5 +230,27 @@ public sealed class PackageCacheTests : LoggingFolderCleanupTestBase
         Assert.Single(result);
         Assert.Equal(expected: "TestPackage", actual: result[0].PackageId);
         Assert.Equal(expected: new NuGetVersion("1.0.0"), actual: result[0].Version);
+    }
+
+    [Fact]
+    public async Task SaveAsync_ThenLoadAsync_RoundTripsWinningCasing()
+    {
+        string filePath = Path.Combine(this.TempFolder, "cache-casing-round-trip.json");
+
+        PackageCache saveCache = this.CreateCache();
+        PackageVersion v1 = new(packageId: "Foo.Bar", version: new NuGetVersion("1.0.0"));
+        PackageVersion v2 = new(packageId: "foo.bar", version: new NuGetVersion("2.0.0"));
+        saveCache.SetVersions([v1]);
+        saveCache.SetVersions([v2]);
+
+        await saveCache.SaveAsync(fileName: filePath, cancellationToken: this.CancellationToken());
+
+        PackageCache loadCache = this.CreateCache();
+        await loadCache.LoadAsync(fileName: filePath, cancellationToken: this.CancellationToken());
+
+        IReadOnlyList<PackageVersion> result = loadCache.GetAll();
+        Assert.Single(result);
+        Assert.Equal(expected: "foo.bar", actual: result[0].PackageId);
+        Assert.Equal(expected: new NuGetVersion("2.0.0"), actual: result[0].Version);
     }
 }

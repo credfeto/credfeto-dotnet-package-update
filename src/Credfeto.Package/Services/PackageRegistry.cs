@@ -32,7 +32,7 @@ public sealed class PackageRegistry : IPackageRegistry
     {
         IReadOnlyList<SourceRepository> sourceRepositories = DefineSourceRepositories(packageSources);
 
-        ConcurrentDictionary<string, NuGetVersion> packages = new(StringComparer.OrdinalIgnoreCase);
+        ConcurrentDictionary<string, PackageVersion> packages = new(StringComparer.OrdinalIgnoreCase);
 
         foreach (string packageId in packageIds)
         {
@@ -44,7 +44,7 @@ public sealed class PackageRegistry : IPackageRegistry
             );
         }
 
-        return [.. packages.Select(p => new PackageVersion(packageId: p.Key, version: p.Value))];
+        return [.. packages.Values];
     }
 
     private static IReadOnlyList<SourceRepository> DefineSourceRepositories(IReadOnlyList<string> sources)
@@ -89,23 +89,26 @@ public sealed class PackageRegistry : IPackageRegistry
 
     // merged single-threaded after the Task.WhenAll barrier in FindPackageInSourcesAsync, so the
     // highest candidate across sources is never dropped by a lost concurrent-write race (see #569).
+    // Stores the whole candidate (not just its version) so the winning source's package id casing
+    // travels with the value - a dictionary's key text never updates on a same-key write, only the
+    // value does, so reading id casing back out of the key would silently keep whichever source was
+    // merged first instead of whichever source actually won on version (see #595).
     public void RegisterFoundPackageVersion(
         PackageSource packageSource,
-        IDictionary<string, NuGetVersion> found,
-        string packageId,
-        NuGetVersion candidateVersion
+        IDictionary<string, PackageVersion> found,
+        PackageVersion candidate
     )
     {
-        if (found.TryGetValue(key: packageId, out NuGetVersion? existingVersion) && existingVersion >= candidateVersion)
+        if (found.TryGetValue(key: candidate.PackageId, out PackageVersion? existing) && existing.Version >= candidate.Version)
         {
             return;
         }
 
-        found[packageId] = candidateVersion;
+        found[candidate.PackageId] = candidate;
 
         this._logger.FoundPackageInSource(
-            packageId: packageId,
-            version: candidateVersion,
+            packageId: candidate.PackageId,
+            version: candidate.Version,
             source: packageSource.Source
         );
     }
@@ -118,7 +121,7 @@ public sealed class PackageRegistry : IPackageRegistry
     private async ValueTask FindPackageInSourcesAsync(
         IReadOnlyList<SourceRepository> sourceRepositories,
         string packageId,
-        ConcurrentDictionary<string, NuGetVersion> packages,
+        ConcurrentDictionary<string, PackageVersion> packages,
         CancellationToken cancellationToken
     )
     {
@@ -141,23 +144,23 @@ public sealed class PackageRegistry : IPackageRegistry
 
         // sources ran concurrently above; the Task.WhenAll barrier means every source's results are
         // already collected by this point, so merging them here can run single-threaded (see #569).
-        Dictionary<string, NuGetVersion> found = this.MergeFoundVersions(
+        Dictionary<string, PackageVersion> found = this.MergeFoundVersions(
             sourceRepositories: sourceRepositories,
             outcomes: outcomes
         );
 
-        foreach ((string key, NuGetVersion value) in found)
+        foreach (PackageVersion value in found.Values)
         {
-            packages.TryAdd(key: key, value: value);
+            packages.TryAdd(key: value.PackageId, value: value);
         }
     }
 
-    private Dictionary<string, NuGetVersion> MergeFoundVersions(
+    private Dictionary<string, PackageVersion> MergeFoundVersions(
         IReadOnlyList<SourceRepository> sourceRepositories,
         (IReadOnlyList<PackageVersion> Found, Exception? Failure)[] outcomes
     )
     {
-        Dictionary<string, NuGetVersion> found = new(StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, PackageVersion> found = new(StringComparer.OrdinalIgnoreCase);
 
         for (int index = 0; index < sourceRepositories.Count; ++index)
         {
@@ -165,12 +168,7 @@ public sealed class PackageRegistry : IPackageRegistry
 
             foreach (PackageVersion packageVersion in outcomes[index].Found)
             {
-                this.RegisterFoundPackageVersion(
-                    packageSource: packageSource,
-                    found: found,
-                    packageId: packageVersion.PackageId,
-                    candidateVersion: packageVersion.Version
-                );
+                this.RegisterFoundPackageVersion(packageSource: packageSource, found: found, candidate: packageVersion);
             }
         }
 
