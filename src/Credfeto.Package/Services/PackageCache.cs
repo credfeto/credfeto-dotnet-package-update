@@ -91,9 +91,17 @@ public sealed class PackageCache : IPackageCache
 
     public IReadOnlyList<PackageVersion> GetVersions(IReadOnlyList<string> packageIds)
     {
-        return BuildVersions(
-            this._cache.Where(x => packageIds.Contains(value: x.Key, comparer: StringComparer.OrdinalIgnoreCase))
-        );
+        List<PackageVersion> found = new(packageIds.Count);
+
+        foreach (string packageId in packageIds)
+        {
+            if (this._cache.TryGetValue(key: packageId, out PackageVersion? version))
+            {
+                found.Add(version);
+            }
+        }
+
+        return found;
     }
 
     public void SetVersions(IReadOnlyList<PackageVersion> matching)

@@ -30,6 +30,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Reuse each NuGet source's SourceRepository across package lookups instead of rebuilding it per package, restoring NuGet's resource and HTTP caching.
 - SDK - Updated DotNet SDK to 10.0.302
 - Drop support for .NET 9.0; target .NET 10.0 exclusively
+- Improve performance of PackageCache.GetVersions by probing the cache dictionary directly instead of scanning it for every requested package id
 ### Deprecated
 ### Removed
 ### Deployment Changes
