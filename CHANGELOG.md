@@ -7,6 +7,17 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 
 ## [Unreleased]
 ### Security
+### Added
+### Fixed
+### Changed
+### Deprecated
+### Removed
+### Deployment Changes
+<!--
+Releases that have at least been deployed to staging, BUT NOT necessarily released to live.  Changes should be moved from [Unreleased] into here as they are merged into the appropriate release branch
+-->
+## [1.10.218] - 2026-07-16
+### Security
 - Suppress NuGet.Protocol 6.14.0 low severity vulnerability GHSA-g4vj-cjjj-v7hg pending package update
 ### Added
 - Unit tests for Credfeto.Package.Update to achieve 100% code coverage
@@ -31,12 +42,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - SDK - Updated DotNet SDK to 10.0.302
 - Drop support for .NET 9.0; target .NET 10.0 exclusively
 - Improve performance of PackageCache.GetVersions by probing the cache dictionary directly instead of scanning it for every requested package id
-### Deprecated
-### Removed
-### Deployment Changes
-<!--
-Releases that have at least been deployed to staging, BUT NOT necessarily released to live.  Changes should be moved from [Unreleased] into here as they are merged into the appropriate release branch
--->
+
 ## [1.10.217] - 2026-04-09
 ### Changed
 - Dependencies - Updated Meziantou.Analyzer to 2.0.219
