@@ -21,6 +21,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Concurrent package version lookups across NuGet feeds no longer silently drop the highest version when two feeds race to update the same package
 - Saved .csproj files now always end with exactly one newline, matching pre-commit's end-of-file-fixer expectation
 - Package version lookups no longer pick an older version when NuGet feeds disagree on package-id casing
+- Merged package versions across NuGet feeds now keep the package id casing of whichever feed supplied the winning version, in both the live registry lookup and the on-disk version cache
 ### Changed
 - Updated DotNet SDK to 10.0.300
 - Renamed Credfeto.Package.Test to Credfeto.Package.Tests to follow the .Tests naming convention
