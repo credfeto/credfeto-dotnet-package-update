@@ -219,6 +219,43 @@ public sealed class PackageRegistryTests : LoggingTestBase
     }
 
     [Fact]
+    public async Task FindPackagesAsync_WhenSourcesDisagreeOnPackageIdCasing_ReturnsTheHighestVersion()
+    {
+        IPackageMetadataFetcher metadataFetcher = GetSubstitute<IPackageMetadataFetcher>();
+
+        metadataFetcher
+            .GetMetadataAsync(
+                Arg.Is<SourceRepository>(sourceRepository =>
+                    StringComparer.Ordinal.Equals(sourceRepository.PackageSource.Source, AliveSourceUrl)
+                ),
+                packageId: "Foo.Bar",
+                Arg.Any<CancellationToken>()
+            )
+            .Returns(_ => Task.FromResult(MetadataFor(packageId: "Foo.Bar", version: "1.0.0")));
+
+        metadataFetcher
+            .GetMetadataAsync(
+                Arg.Is<SourceRepository>(sourceRepository =>
+                    StringComparer.Ordinal.Equals(sourceRepository.PackageSource.Source, DeadSourceUrl2)
+                ),
+                packageId: "Foo.Bar",
+                Arg.Any<CancellationToken>()
+            )
+            .Returns(_ => Task.FromResult(MetadataFor(packageId: "foo.bar", version: "2.0.0")));
+
+        PackageRegistry registry = this.CreateRegistry(metadataFetcher);
+
+        IReadOnlyList<PackageVersion> result = await registry.FindPackagesAsync(
+            packageIds: ["Foo.Bar"],
+            packageSources: [AliveSourceUrl, DeadSourceUrl2],
+            cancellationToken: this.CancellationToken()
+        );
+
+        PackageVersion found = Assert.Single(result);
+        Assert.Equal(expected: NuGetVersion.Parse("2.0.0"), actual: found.Version);
+    }
+
+    [Fact]
     public void RegisterFoundPackageVersion_WhenKeyNotPresent_AddsCandidate()
     {
         Dictionary<string, NuGetVersion> found = new(StringComparer.Ordinal);
