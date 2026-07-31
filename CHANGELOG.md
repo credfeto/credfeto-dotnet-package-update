@@ -12,7 +12,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 ### Security
 ### Added
 ### Fixed
-- TBD - to be finalized after review
+- Replace deprecated ::set-env GitHub Actions workflow command with writes to the GITHUB_ENV environment file, so package update output is no longer silently dropped
 ### Changed
 ### Deprecated
 ### Removed
