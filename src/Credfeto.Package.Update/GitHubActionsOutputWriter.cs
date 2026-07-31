@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace Credfeto.Package.Update;
 
@@ -13,27 +14,16 @@ public static class GitHubActionsOutputWriter
             return;
         }
 
+        string[] lines = [.. updated.Select(static package => $"{package.PackageId}={package.Version}")];
+
         if (!string.IsNullOrWhiteSpace(gitHubEnvFilePath))
         {
-            File.AppendAllLines(gitHubEnvFilePath, BuildLines(updated));
+            File.AppendAllLines(gitHubEnvFilePath, lines);
         }
 
-        foreach (PackageVersion package in updated)
+        foreach (string line in lines)
         {
-            Console.WriteLine($"{package.PackageId}={package.Version}");
+            Console.WriteLine(line);
         }
-    }
-
-    private static IReadOnlyList<string> BuildLines(IReadOnlyList<PackageVersion> updated)
-    {
-        string[] lines = new string[updated.Count];
-
-        for (int index = 0; index < updated.Count; ++index)
-        {
-            PackageVersion package = updated[index];
-            lines[index] = $"{package.PackageId}={package.Version}";
-        }
-
-        return lines;
     }
 }
