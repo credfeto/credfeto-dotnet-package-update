@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -34,11 +33,6 @@ public sealed class PackageUpdater : IPackageUpdater
         this._logger = logger;
     }
 
-    [SuppressMessage(
-        category: "Meziantou.Analyzer",
-        checkId: "MA0051: Method is too long",
-        Justification = "Needs Review/simplificiation"
-    )]
     public async ValueTask<IReadOnlyList<PackageVersion>> UpdateAsync(
         string basePath,
         PackageUpdateConfiguration configuration,
@@ -62,54 +56,16 @@ public sealed class PackageUpdater : IPackageUpdater
         }
 
         IReadOnlyList<string> packageIds = [.. projectsByPackage.Keys];
-        IReadOnlyList<PackageVersion> cachedVersions = this._packageCache.GetVersions(packageIds);
 
-        IReadOnlyList<PackageVersion> matching;
+        IReadOnlyList<PackageVersion> matching = await this.ResolveMatchingVersionsAsync(
+            packageIds: packageIds,
+            packageSources: packageSources,
+            cancellationToken: cancellationToken
+        );
 
-        if (cachedVersions.Count == 0)
+        if (matching.Count == 0)
         {
-            matching = await this._packageRegistry.FindPackagesAsync(
-                packageIds: packageIds,
-                packageSources: packageSources,
-                cancellationToken: cancellationToken
-            );
-
-            if (matching is [])
-            {
-                this._logger.NoMatchingPackagesInEventSource();
-
-                return [];
-            }
-
-            this._packageCache.SetVersions(matching);
-        }
-        else if (cachedVersions.Count != packageIds.Count)
-        {
-            HashSet<string> cachedPackageIds = new(
-                cachedVersions.Select(cached => cached.PackageId),
-                StringComparer.OrdinalIgnoreCase
-            );
-            IReadOnlyList<string> missingPackageIds =
-            [
-                .. packageIds.Where(packageId => !cachedPackageIds.Contains(packageId)),
-            ];
-
-            IReadOnlyList<PackageVersion> fetched = await this._packageRegistry.FindPackagesAsync(
-                packageIds: missingPackageIds,
-                packageSources: packageSources,
-                cancellationToken: cancellationToken
-            );
-
-            if (fetched is not [])
-            {
-                this._packageCache.SetVersions(fetched);
-            }
-
-            matching = [.. cachedVersions, .. fetched];
-        }
-        else
-        {
-            matching = cachedVersions;
+            return [];
         }
 
         ConcurrentDictionary<string, NuGetVersion> updated = new(StringComparer.OrdinalIgnoreCase);
@@ -126,6 +82,62 @@ public sealed class PackageUpdater : IPackageUpdater
         await this.SaveChangesAsync(projects: projects, cancellationToken: cancellationToken);
 
         return [.. updated.Select(p => new PackageVersion(packageId: p.Key, version: p.Value))];
+    }
+
+    private async ValueTask<IReadOnlyList<PackageVersion>> ResolveMatchingVersionsAsync(
+        IReadOnlyList<string> packageIds,
+        IReadOnlyList<string> packageSources,
+        CancellationToken cancellationToken
+    )
+    {
+        IReadOnlyList<PackageVersion> cachedVersions = this._packageCache.GetVersions(packageIds);
+
+        if (cachedVersions.Count == 0)
+        {
+            IReadOnlyList<PackageVersion> matching = await this._packageRegistry.FindPackagesAsync(
+                packageIds: packageIds,
+                packageSources: packageSources,
+                cancellationToken: cancellationToken
+            );
+
+            if (matching is [])
+            {
+                this._logger.NoMatchingPackagesInEventSource();
+
+                return [];
+            }
+
+            this._packageCache.SetVersions(matching);
+
+            return matching;
+        }
+
+        if (cachedVersions.Count == packageIds.Count)
+        {
+            return cachedVersions;
+        }
+
+        HashSet<string> cachedPackageIds = new(
+            cachedVersions.Select(cached => cached.PackageId),
+            StringComparer.OrdinalIgnoreCase
+        );
+        IReadOnlyList<string> missingPackageIds =
+        [
+            .. packageIds.Where(packageId => !cachedPackageIds.Contains(packageId)),
+        ];
+
+        IReadOnlyList<PackageVersion> fetched = await this._packageRegistry.FindPackagesAsync(
+            packageIds: missingPackageIds,
+            packageSources: packageSources,
+            cancellationToken: cancellationToken
+        );
+
+        if (fetched is not [])
+        {
+            this._packageCache.SetVersions(fetched);
+        }
+
+        return [.. cachedVersions, .. fetched];
     }
 
     private async ValueTask SaveChangesAsync(IReadOnlyList<IProject> projects, CancellationToken cancellationToken)
