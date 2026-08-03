@@ -253,16 +253,13 @@ internal sealed class Project : IProject
             return true;
         }
 
-        if (versionElement is { } childElement)
+        string childText = versionElement?.InnerText ?? string.Empty;
+
+        if (!string.IsNullOrWhiteSpace(childText))
         {
-            string childText = childElement.InnerText;
+            version = childText;
 
-            if (!string.IsNullOrWhiteSpace(childText))
-            {
-                version = childText;
-
-                return true;
-            }
+            return true;
         }
 
         version = string.Empty;
