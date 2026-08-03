@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
@@ -242,6 +243,102 @@ public sealed class ProjectTests : LoggingFolderCleanupTestBase
         Assert.NotEqual(expected: (byte)'\n', actual: bytes[^2]);
         Assert.NotEqual(expected: (byte)'\r', actual: bytes[^2]);
         Assert.Equal(expected: [0xEF, 0xBB, 0xBF], actual: bytes[..3]);
+    }
+
+    [Fact]
+    public async Task Packages_WhenPackageReferenceHasVersionChildElement_ReturnsPackage()
+    {
+        IProject? project = await this.LoadProjectAsync(
+            """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <ItemGroup>
+                <PackageReference Include="Some.Package">
+                  <Version>1.2.3</Version>
+                </PackageReference>
+              </ItemGroup>
+            </Project>
+            """
+        );
+
+        Assert.NotNull(project);
+        PackageVersion entry = Assert.Single(project.Packages);
+        Assert.Equal(expected: "Some.Package", actual: entry.PackageId);
+        Assert.Equal(expected: new NuGetVersion("1.2.3"), actual: entry.Version);
+    }
+
+    [Fact]
+    public async Task Packages_WhenPackageReferenceHasNeitherVersionAttributeNorChildElement_ReturnsEmpty()
+    {
+        IProject? project = await this.LoadProjectAsync(
+            """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <ItemGroup>
+                <PackageReference Include="Some.Package" />
+              </ItemGroup>
+            </Project>
+            """
+        );
+
+        Assert.NotNull(project);
+        Assert.Empty(project.Packages);
+    }
+
+    [Fact]
+    public async Task Packages_WhenPackageReferenceHasBlankVersionChildElement_ReturnsEmpty()
+    {
+        IProject? project = await this.LoadProjectAsync(
+            """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <ItemGroup>
+                <PackageReference Include="Some.Package">
+                  <Version></Version>
+                </PackageReference>
+              </ItemGroup>
+            </Project>
+            """
+        );
+
+        Assert.NotNull(project);
+        Assert.Empty(project.Packages);
+    }
+
+    [Fact]
+    public async Task UpdatePackage_WhenPackagePresentWithVersionChildElement_ReturnsTrueAndNormalisesToAttribute()
+    {
+        IProject? project = await this.LoadProjectAsync(
+            """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <ItemGroup>
+                <PackageReference Include="Some.Package">
+                  <Version>1.0.0</Version>
+                </PackageReference>
+              </ItemGroup>
+            </Project>
+            """
+        );
+
+        Assert.NotNull(project);
+        bool updated = project.UpdatePackage(new(packageId: "Some.Package", new NuGetVersion("2.0.0")));
+
+        Assert.True(updated, userMessage: "Expected update to report a change");
+        Assert.True(project.Changed, userMessage: "Expected project to be marked as changed");
+        PackageVersion entry = Assert.Single(project.Packages);
+        Assert.Equal(expected: new NuGetVersion("2.0.0"), actual: entry.Version);
+
+        bool saved = await project.SaveAsync(this.CancellationToken());
+        Assert.True(saved, userMessage: "Expected the changed project to be saved");
+
+        string content = await File.ReadAllTextAsync(project.FileName, cancellationToken: this.CancellationToken());
+        Assert.Contains(
+            expectedSubstring: "Version=\"2.0.0\"",
+            actualString: content,
+            comparisonType: StringComparison.Ordinal
+        );
+        Assert.DoesNotContain(
+            expectedSubstring: "<Version>",
+            actualString: content,
+            comparisonType: StringComparison.Ordinal
+        );
     }
 
     [Fact]
