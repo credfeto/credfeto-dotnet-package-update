@@ -97,12 +97,7 @@ internal sealed class Project : IProject
             string packageId = node.GetAttribute("Include");
 
             if (
-                string.IsNullOrWhiteSpace(packageId)
-                || !TryGetReferenceVersion(
-                    node: node,
-                    version: out string version,
-                    versionElement: out XmlElement? versionElement
-                )
+                string.IsNullOrWhiteSpace(packageId) || !TryGetReferenceVersion(node: node, version: out string version)
             )
             {
                 continue;
@@ -113,7 +108,7 @@ internal sealed class Project : IProject
                 node.SetAttribute(name: "Include", value: package.PackageId);
                 node.SetAttribute(name: "Version", package.Version.ToString());
 
-                if (versionElement is not null)
+                if (node["Version"] is { } versionElement)
                 {
                     node.RemoveChild(versionElement);
                 }
@@ -219,8 +214,7 @@ internal sealed class Project : IProject
             string packageId = node.GetAttribute("Include");
 
             if (
-                string.IsNullOrWhiteSpace(packageId)
-                || !TryGetReferenceVersion(node: node, version: out string version, versionElement: out _)
+                string.IsNullOrWhiteSpace(packageId) || !TryGetReferenceVersion(node: node, version: out string version)
             )
             {
                 continue;
@@ -235,28 +229,30 @@ internal sealed class Project : IProject
         }
     }
 
-    private static bool TryGetReferenceVersion(XmlElement node, out string version, out XmlElement? versionElement)
+    private static bool TryGetReferenceVersion(XmlElement node, out string version)
     {
         string attributeVersion = node.GetAttribute("Version");
 
         if (!string.IsNullOrWhiteSpace(attributeVersion))
         {
             version = attributeVersion;
-            versionElement = null;
 
             return true;
         }
 
-        if (node["Version"] is { } childElement && !string.IsNullOrWhiteSpace(childElement.InnerText))
+        if (node["Version"] is { } childElement)
         {
-            version = childElement.InnerText;
-            versionElement = childElement;
+            string childText = childElement.InnerText;
 
-            return true;
+            if (!string.IsNullOrWhiteSpace(childText))
+            {
+                version = childText;
+
+                return true;
+            }
         }
 
         version = string.Empty;
-        versionElement = null;
 
         return false;
     }
