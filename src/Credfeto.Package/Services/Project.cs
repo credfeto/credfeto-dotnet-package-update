@@ -96,8 +96,17 @@ internal sealed class Project : IProject
         {
             string packageId = node.GetAttribute("Include");
 
+            if (string.IsNullOrWhiteSpace(packageId))
+            {
+                continue;
+            }
+
             if (
-                string.IsNullOrWhiteSpace(packageId) || !TryGetReferenceVersion(node: node, version: out string version)
+                !TryGetReferenceVersion(
+                    node: node,
+                    version: out string version,
+                    versionElement: out XmlElement? versionElement
+                )
             )
             {
                 continue;
@@ -108,7 +117,7 @@ internal sealed class Project : IProject
                 node.SetAttribute(name: "Include", value: package.PackageId);
                 node.SetAttribute(name: "Version", package.Version.ToString());
 
-                if (node["Version"] is { } versionElement)
+                if (versionElement is not null)
                 {
                     node.RemoveChild(versionElement);
                 }
@@ -213,9 +222,12 @@ internal sealed class Project : IProject
         {
             string packageId = node.GetAttribute("Include");
 
-            if (
-                string.IsNullOrWhiteSpace(packageId) || !TryGetReferenceVersion(node: node, version: out string version)
-            )
+            if (string.IsNullOrWhiteSpace(packageId))
+            {
+                continue;
+            }
+
+            if (!TryGetReferenceVersion(node: node, version: out string version, versionElement: out _))
             {
                 continue;
             }
@@ -229,9 +241,10 @@ internal sealed class Project : IProject
         }
     }
 
-    private static bool TryGetReferenceVersion(XmlElement node, out string version)
+    private static bool TryGetReferenceVersion(XmlElement node, out string version, out XmlElement? versionElement)
     {
         string attributeVersion = node.GetAttribute("Version");
+        versionElement = node["Version"];
 
         if (!string.IsNullOrWhiteSpace(attributeVersion))
         {
@@ -240,7 +253,7 @@ internal sealed class Project : IProject
             return true;
         }
 
-        if (node["Version"] is { } childElement)
+        if (versionElement is { } childElement)
         {
             string childText = childElement.InnerText;
 
