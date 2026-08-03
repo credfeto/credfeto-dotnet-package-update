@@ -1,4 +1,5 @@
 ﻿using System;
+using Credfeto.Package.Update;
 using Credfeto.Package.Update.Services;
 using FunFair.Test.Common;
 using Microsoft.Extensions.Logging;
@@ -22,7 +23,7 @@ public sealed class LoggerProxyTests : TestBase
     [Fact]
     public void IsEnabledDelegatesToInnerLogger()
     {
-        ILogger innerLogger = GetSubstitute<ILogger>();
+        IDiagnosticLogger innerLogger = GetSubstitute<IDiagnosticLogger>();
         innerLogger.IsEnabled(LogLevel.Information).Returns(true);
 
         LoggerProxy<LoggerProxyTests> proxy = new(innerLogger);
@@ -36,7 +37,7 @@ public sealed class LoggerProxyTests : TestBase
     [Fact]
     public void BeginScopeDelegatesToInnerLogger()
     {
-        ILogger innerLogger = GetSubstitute<ILogger>();
+        IDiagnosticLogger innerLogger = GetSubstitute<IDiagnosticLogger>();
         IDisposable expectedScope = GetSubstitute<IDisposable>();
         innerLogger.BeginScope(Arg.Any<string>()).Returns(expectedScope);
 
@@ -51,7 +52,7 @@ public sealed class LoggerProxyTests : TestBase
     [Fact]
     public void LogDelegatesToInnerLogger()
     {
-        ILogger innerLogger = GetSubstitute<ILogger>();
+        IDiagnosticLogger innerLogger = GetSubstitute<IDiagnosticLogger>();
 
         LoggerProxy<LoggerProxyTests> proxy = new(innerLogger);
 

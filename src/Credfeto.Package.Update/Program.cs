@@ -135,10 +135,7 @@ internal static class Program
 
     private static void OutputPackageUpdateTags(IReadOnlyList<PackageVersion> updated)
     {
-        foreach (PackageVersion package in updated)
-        {
-            Console.WriteLine($"::set-env name={package.PackageId}::{package.Version}");
-        }
+        GitHubActionsOutputWriter.WritePackageUpdates(updated, Environment.GetEnvironmentVariable("GITHUB_ENV"));
     }
 
     private static IReadOnlyList<PackageMatch> GetExcludedPackages(IReadOnlyList<string> excludes)
