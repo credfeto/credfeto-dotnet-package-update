@@ -75,7 +75,11 @@ internal sealed class Project : IProject
 
             // Render fully in memory first, so a serialisation failure can never truncate an
             // already-good file on disk.
-            await File.WriteAllBytesAsync(path: this.FileName, bytes: stream.ToArray(), cancellationToken: cancellationToken);
+            await File.WriteAllBytesAsync(
+                path: this.FileName,
+                bytes: stream.ToArray(),
+                cancellationToken: cancellationToken
+            );
         }
 
         this.Changed = false;
@@ -91,9 +95,19 @@ internal sealed class Project : IProject
         foreach (XmlElement node in references)
         {
             string packageId = node.GetAttribute("Include");
-            string version = node.GetAttribute("Version");
 
-            if (string.IsNullOrWhiteSpace(packageId) || string.IsNullOrWhiteSpace(version))
+            if (string.IsNullOrWhiteSpace(packageId))
+            {
+                continue;
+            }
+
+            if (
+                !TryGetReferenceVersion(
+                    node: node,
+                    version: out string version,
+                    versionElement: out XmlElement? versionElement
+                )
+            )
             {
                 continue;
             }
@@ -102,6 +116,12 @@ internal sealed class Project : IProject
             {
                 node.SetAttribute(name: "Include", value: package.PackageId);
                 node.SetAttribute(name: "Version", package.Version.ToString());
+
+                if (versionElement is not null)
+                {
+                    node.RemoveChild(versionElement);
+                }
+
                 ++updates;
                 this.Changed = true;
             }
@@ -201,9 +221,13 @@ internal sealed class Project : IProject
         foreach (XmlElement node in references)
         {
             string packageId = node.GetAttribute("Include");
-            string version = node.GetAttribute("Version");
 
-            if (string.IsNullOrWhiteSpace(packageId) || string.IsNullOrWhiteSpace(version))
+            if (string.IsNullOrWhiteSpace(packageId))
+            {
+                continue;
+            }
+
+            if (!TryGetReferenceVersion(node: node, version: out string version, versionElement: out _))
             {
                 continue;
             }
@@ -215,6 +239,32 @@ internal sealed class Project : IProject
 
             yield return new(packageId: packageId, parsedVersion);
         }
+    }
+
+    private static bool TryGetReferenceVersion(XmlElement node, out string version, out XmlElement? versionElement)
+    {
+        string attributeVersion = node.GetAttribute("Version");
+        versionElement = node["Version"];
+
+        if (!string.IsNullOrWhiteSpace(attributeVersion))
+        {
+            version = attributeVersion;
+
+            return true;
+        }
+
+        string childText = versionElement?.InnerText ?? string.Empty;
+
+        if (!string.IsNullOrWhiteSpace(childText))
+        {
+            version = childText;
+
+            return true;
+        }
+
+        version = string.Empty;
+
+        return false;
     }
 
     private IEnumerable<PackageVersion> GetPackagesFromSdk()
