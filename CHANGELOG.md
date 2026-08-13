@@ -16,6 +16,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Fix build-pre-release CI failures caused by two pre-existing Roslyn analyzer errors (FFS0024, MA0051) that suppression attributes were not actually clearing
 - PackageReference elements that specify their version via a <Version> child element (instead of a Version attribute) are no longer silently skipped when enumerating or updating packages
 ### Changed
+- SDK - Updated DotNet SDK to 10.0.400
 ### Deprecated
 ### Removed
 ### Deployment Changes
