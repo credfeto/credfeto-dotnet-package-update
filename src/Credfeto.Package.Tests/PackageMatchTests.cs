@@ -17,7 +17,7 @@ public sealed class PackageMatchTests : TestBase
     [InlineData("Test.Package", "test.package", true)]
     [InlineData("Test.Package", "Other.Package", false)]
     [InlineData("Test.Package", "Test.PackageExtra", false)]
-    public void ExactMatch_ReturnsExpected(string packageId, string candidateId, bool expected)
+    public static void ExactMatch_ReturnsExpected(string packageId, string candidateId, bool expected)
     {
         PackageMatch match = new(PackageId: packageId, Prefix: false);
         PackageVersion packageVersion = MakePackageVersion(candidateId);
@@ -36,7 +36,7 @@ public sealed class PackageMatchTests : TestBase
     [InlineData("Test.Package", "test.package.sub", true)]
     [InlineData("Test.Package", "Test.PackageExtra", false)]
     [InlineData("Test.Package", "Other.Package", false)]
-    public void PrefixMatch_ReturnsExpected(string packageId, string candidateId, bool expected)
+    public static void PrefixMatch_ReturnsExpected(string packageId, string candidateId, bool expected)
     {
         PackageMatch match = new(PackageId: packageId, Prefix: true);
         PackageVersion packageVersion = MakePackageVersion(candidateId);

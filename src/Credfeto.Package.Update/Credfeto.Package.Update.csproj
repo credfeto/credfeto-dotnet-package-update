@@ -67,12 +67,12 @@
     <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-447r-wph3-92pm" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Credfeto.Package\Credfeto.Package.csproj" />
+    <ProjectReference Include="../Credfeto.Package/Credfeto.Package.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="CommandLineParser" Version="2.9.1" />
-    <PackageReference Include="Credfeto.Enumeration.Source.Generation.Attributes" Version="1.2.129.1430" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.9" />
+    <PackageReference Include="CommandLineParser" Version="2.9.1" IncludeAssets="compile;runtime" />
+    <PackageReference Include="Credfeto.Enumeration.Source.Generation.Attributes" Version="1.2.129.1430" IncludeAssets="compile;runtime" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.9" IncludeAssets="compile;runtime" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="AsyncFixer" Version="1.6.0" PrivateAssets="All" ExcludeAssets="runtime" />

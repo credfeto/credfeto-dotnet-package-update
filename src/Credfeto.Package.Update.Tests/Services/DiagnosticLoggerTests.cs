@@ -36,7 +36,7 @@ public sealed class DiagnosticLoggerTests : TestBase
     [InlineData(LogLevel.Error, true)]
     [InlineData(LogLevel.Critical, true)]
     [InlineData(LogLevel.None, true)]
-    public void IsEnabledReturnsExpectedResultForLogLevel(LogLevel logLevel, bool expected)
+    public static void IsEnabledReturnsExpectedResultForLogLevel(LogLevel logLevel, bool expected)
     {
         DiagnosticLogger logger = new(warningsAsErrors: false);
 
