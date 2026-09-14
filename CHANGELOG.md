@@ -15,14 +15,17 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Replace deprecated ::set-env GitHub Actions workflow command with writes to the GITHUB_ENV environment file, so package update output is no longer silently dropped
 - Fix build-pre-release CI failures caused by two pre-existing Roslyn analyzer errors (FFS0024, MA0051) that suppression attributes were not actually clearing
 - PackageReference elements that specify their version via a <Version> child element (instead of a Version attribute) are no longer silently skipped when enumerating or updating packages
+- Fix build-pre-release CI failures caused by FunFair.BuildCheck's canonical-xunit-package and IncludeAssets policies: switch test projects to xunit.v3.aot.mtp-v2, bump FunFair.Test.Common/FunFair.Test.Source.Generator to 6.4.5.2739 and NSubstitute to 6.2.0 to resolve the resulting duplicate-type and version-downgrade conflicts, add the AOT test dispatcher FunFair.Test.Source.Generator now requires on EquatableObjectTestBase-derived test classes, and mark instance-data-free test methods static per CA1822
 ### Changed
-- SDK - Updated DotNet SDK to 10.0.400
+- SDK - Updated DotNet SDK to 10.0.401
 ### Deprecated
 ### Removed
 ### Deployment Changes
+
 <!--
 Releases that have at least been deployed to staging, BUT NOT necessarily released to live.  Changes should be moved from [Unreleased] into here as they are merged into the appropriate release branch
 -->
+
 ## [1.10.218] - 2026-07-16
 ### Security
 - Suppress NuGet.Protocol 6.14.0 low severity vulnerability GHSA-g4vj-cjjj-v7hg pending package update
@@ -1068,6 +1071,7 @@ Releases that have at least been deployed to staging, BUT NOT necessarily releas
 - Dependencies - Updated SonarAnalyzer.CSharp to 9.16.0.82469
 ### Removed
 ### Deployment Changes
+
 ## [1.10.41] - 2023-11-18
 ### Changed
 - Dependencies - Updated FunFair.Test.Common to 6.1.19.238

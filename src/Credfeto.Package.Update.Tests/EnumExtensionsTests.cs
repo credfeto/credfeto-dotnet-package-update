@@ -16,7 +16,7 @@ public sealed class EnumExtensionsTests : TestBase
     [InlineData(LogLevel.Error, "Error")]
     [InlineData(LogLevel.Critical, "Critical")]
     [InlineData(LogLevel.None, "None")]
-    public void LogLevelGetNameReturnsExpectedString(LogLevel logLevel, string expected)
+    public static void LogLevelGetNameReturnsExpectedString(LogLevel logLevel, string expected)
     {
         string result = logLevel.GetName();
 
@@ -31,7 +31,7 @@ public sealed class EnumExtensionsTests : TestBase
     [InlineData(LogLevel.Error)]
     [InlineData(LogLevel.Critical)]
     [InlineData(LogLevel.None)]
-    public void LogLevelGetDescriptionReturnsNonEmptyString(LogLevel value)
+    public static void LogLevelGetDescriptionReturnsNonEmptyString(LogLevel value)
     {
         string description = value.GetDescription();
 
@@ -46,7 +46,7 @@ public sealed class EnumExtensionsTests : TestBase
     [InlineData(LogLevel.Error)]
     [InlineData(LogLevel.Critical)]
     [InlineData(LogLevel.None)]
-    public void LogLevelIsDefinedReturnsTrueForKnownValues(LogLevel value)
+    public static void LogLevelIsDefinedReturnsTrueForKnownValues(LogLevel value)
     {
         bool defined = value.IsDefined();
 
@@ -86,7 +86,7 @@ public sealed class EnumExtensionsTests : TestBase
     [InlineData(ErrorType.MissingGroupOptionError, "MissingGroupOptionError")]
     [InlineData(ErrorType.GroupOptionAmbiguityError, "GroupOptionAmbiguityError")]
     [InlineData(ErrorType.MultipleDefaultVerbsError, "MultipleDefaultVerbsError")]
-    public void ErrorTypeGetNameReturnsExpectedString(ErrorType errorType, string expected)
+    public static void ErrorTypeGetNameReturnsExpectedString(ErrorType errorType, string expected)
     {
         string result = errorType.GetName();
 
@@ -112,7 +112,7 @@ public sealed class EnumExtensionsTests : TestBase
     [InlineData(ErrorType.MissingGroupOptionError)]
     [InlineData(ErrorType.GroupOptionAmbiguityError)]
     [InlineData(ErrorType.MultipleDefaultVerbsError)]
-    public void ErrorTypeGetDescriptionReturnsNonEmptyString(ErrorType value)
+    public static void ErrorTypeGetDescriptionReturnsNonEmptyString(ErrorType value)
     {
         string description = value.GetDescription();
 
@@ -138,7 +138,7 @@ public sealed class EnumExtensionsTests : TestBase
     [InlineData(ErrorType.MissingGroupOptionError)]
     [InlineData(ErrorType.GroupOptionAmbiguityError)]
     [InlineData(ErrorType.MultipleDefaultVerbsError)]
-    public void ErrorTypeIsDefinedReturnsTrueForKnownValues(ErrorType value)
+    public static void ErrorTypeIsDefinedReturnsTrueForKnownValues(ErrorType value)
     {
         bool defined = value.IsDefined();
 

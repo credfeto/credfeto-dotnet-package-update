@@ -65,10 +65,10 @@
     <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-g4vj-cjjj-v7hg" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Credfeto.Extensions.Linq" Version="1.0.137.1207" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.9" />
-    <PackageReference Include="NonBlocking" Version="2.1.2" />
-    <PackageReference Include="NuGet.Protocol" Version="6.14.0" />
+    <PackageReference Include="Credfeto.Extensions.Linq" Version="1.0.137.1207" IncludeAssets="compile;runtime" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.9" IncludeAssets="compile;runtime" />
+    <PackageReference Include="NonBlocking" Version="2.1.2" IncludeAssets="compile;runtime" />
+    <PackageReference Include="NuGet.Protocol" Version="6.14.0" IncludeAssets="compile;runtime" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="AsyncFixer" Version="1.6.0" PrivateAssets="All" ExcludeAssets="runtime" />

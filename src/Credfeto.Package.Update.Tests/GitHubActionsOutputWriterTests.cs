@@ -37,7 +37,7 @@ public sealed class GitHubActionsOutputWriterTests : TestBase
     [InlineData(null)]
     [InlineData("")]
     [InlineData("   ")]
-    public void WritePackageUpdatesWithNullOrWhitespaceFilePathDoesNotThrow(string? gitHubEnvFilePath)
+    public static void WritePackageUpdatesWithNullOrWhitespaceFilePathDoesNotThrow(string? gitHubEnvFilePath)
     {
         IReadOnlyList<PackageVersion> updated = [new(packageId: "Test.Package", version: new NuGetVersion("1.2.3"))];
 
