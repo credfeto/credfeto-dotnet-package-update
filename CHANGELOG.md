@@ -17,7 +17,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - PackageReference elements that specify their version via a <Version> child element (instead of a Version attribute) are no longer silently skipped when enumerating or updating packages
 - Fix build-pre-release CI failures caused by FunFair.BuildCheck's canonical-xunit-package and IncludeAssets policies: switch test projects to xunit.v3.aot.mtp-v2, bump FunFair.Test.Common/FunFair.Test.Source.Generator to 6.4.5.2739 and NSubstitute to 6.2.0 to resolve the resulting duplicate-type and version-downgrade conflicts, add the AOT test dispatcher FunFair.Test.Source.Generator now requires on EquatableObjectTestBase-derived test classes, and mark instance-data-free test methods static per CA1822
 ### Changed
-- SDK - Updated DotNet SDK to 10.0.401
+- SDK - Updated DotNet SDK to 10.0.402
 ### Deprecated
 ### Removed
 ### Deployment Changes
@@ -1069,8 +1069,6 @@ Releases that have at least been deployed to staging, BUT NOT necessarily releas
 - Dependencies - Updated TeamCity.VSTest.TestAdapter to 1.0.39
 - Dependencies - Updated Philips.CodeAnalysis.MaintainabilityAnalyzers to 1.5.0
 - Dependencies - Updated SonarAnalyzer.CSharp to 9.16.0.82469
-### Removed
-### Deployment Changes
 
 ## [1.10.41] - 2023-11-18
 ### Changed
@@ -1513,18 +1511,18 @@ Releases that have at least been deployed to staging, BUT NOT necessarily releas
 - FF-1429 - Updated SonarAnalyzer.CSharp to 8.21.0.30542
 - Tab size to 4 chars
 
-## [1.4.0] 2020-11-21
+## [1.4.0] - 2020-11-21
 ### Changed
 - FF-1429 - Updated Microsoft.Extensions to 5.0.0
 - FF-1429 - Updated Microsoft.CodeAnalysis.FxCopAnalyzers to 3.3.1
 - FF-1429 - Updated Microsoft.VisualStudio.Threading.Analyzers to 16.8.51
 - Updated to .NET 5.0
 
-## [1.3.0] 2020-10-26
+## [1.3.0] - 2020-10-26
 ### Added
 - Added support for updating one package or a group of packages with the same prefix e.g. Microsoft.Extensions
 
-## [1.2.0] 2020-10-26
+## [1.2.0] - 2020-10-26
 ### Changed
 - FF-1429 - Updated Roslynator.Analyzers to 3.0.0
 - FF-1429 - Updated SonarAnalyzer.CSharp to 8.11.0.20529
@@ -1532,13 +1530,13 @@ Releases that have at least been deployed to staging, BUT NOT necessarily releas
 - FF-1429 - Updated Microsoft.VisualStudio.Threading.Analyzers to 16.7.54
 - Updated build scripts
 
-## [1.1.0] 2020-04-26
+## [1.1.0] - 2020-04-26
 ### Changed
 - Updated to .net core 3.1.302
 - FF-1429 - Updated SonarAnalyzer.CSharp to 8.10.0.19839
 - FF-1429 - Updated AsyncFixer to 1.3.0
 
-## [1.0.0] 2020-04-26
+## [1.0.0] - 2020-04-26
 ### Changed
 - Converted to to be a dotnet tool
 
