@@ -17,7 +17,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - PackageReference elements that specify their version via a <Version> child element (instead of a Version attribute) are no longer silently skipped when enumerating or updating packages
 - Fix build-pre-release CI failures caused by FunFair.BuildCheck's canonical-xunit-package and IncludeAssets policies: switch test projects to xunit.v3.aot.mtp-v2, bump FunFair.Test.Common/FunFair.Test.Source.Generator to 6.4.5.2739 and NSubstitute to 6.2.0 to resolve the resulting duplicate-type and version-downgrade conflicts, add the AOT test dispatcher FunFair.Test.Source.Generator now requires on EquatableObjectTestBase-derived test classes, and mark instance-data-free test methods static per CA1822
 ### Changed
-- SDK - Updated DotNet SDK to 10.0.402
+- SDK - Updated DotNet SDK to 10.0.403
 ### Deprecated
 ### Removed
 ### Deployment Changes
