@@ -19,7 +19,7 @@ internal sealed class CacheItemsConverter : JsonConverter<CacheItems>
         // step forward
         reader.Read();
 
-        Dictionary<string, string> instance = new(StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, string> instance = [with(StringComparer.OrdinalIgnoreCase)];
 
         while (reader.TokenType != JsonTokenType.EndObject)
         {
