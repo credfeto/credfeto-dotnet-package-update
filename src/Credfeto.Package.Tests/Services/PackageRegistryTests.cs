@@ -299,7 +299,7 @@ public sealed class PackageRegistryTests : LoggingTestBase
     [Fact]
     public void RegisterFoundPackageVersion_WhenKeyNotPresent_AddsCandidate()
     {
-        Dictionary<string, PackageVersion> found = new(StringComparer.Ordinal);
+        Dictionary<string, PackageVersion> found = [with(StringComparer.Ordinal)];
         PackageRegistry registry = this.CreateRegistry(GetSubstitute<IPackageMetadataFetcher>());
 
         registry.RegisterFoundPackageVersion(
