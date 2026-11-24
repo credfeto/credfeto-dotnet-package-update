@@ -13,7 +13,7 @@
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <EnablePackageValidation>true</EnablePackageValidation>
     <EnableRequestDelegateGenerator>true</EnableRequestDelegateGenerator>
-    <EnableTrimAnalyzer>false</EnableTrimAnalyzer>
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <EnforceExtendedAnalyzerRules>false</EnforceExtendedAnalyzerRules>
     <Features>strict;flow-analysis;runtime-async=on</Features>
@@ -25,7 +25,7 @@
     <IncludeSymbols>true</IncludeSymbols>
     <IsPackable>true</IsPackable>
     <IsPublishable>true</IsPublishable>
-    <IsTrimmable>false</IsTrimmable>
+    <IsTrimmable>true</IsTrimmable>
     <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
     <LangVersion>latest</LangVersion>
     <NeutralLanguage>en-GB</NeutralLanguage>
@@ -40,21 +40,30 @@
     <PackageReleaseNotes>$(ReleaseNotes)</PackageReleaseNotes>
     <PackageTags>Nuget;update;tool;packages</PackageTags>
     <Product>Package Update Tool</Product>
-    <PublishAot>false</PublishAot>
+    <PublishAot>true</PublishAot>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/credfeto/credfeto-dotnet-package-update</RepositoryUrl>
     <RunAOTCompilation>false</RunAOTCompilation>
-    <RuntimeIdentifiers>win-x64;win-arm64;osx-x64;osx-arm64;linux-x64;linux-arm64</RuntimeIdentifiers>
+    <RuntimeIdentifiers>linux-x64</RuntimeIdentifiers>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <TargetFramework>net11.0</TargetFramework>
     <TieredCompilation>true</TieredCompilation>
     <TieredPGO>true</TieredPGO>
     <ToolCommandName>updatepackages</ToolCommandName>
+    <ToolPackageRuntimeIdentifiers>linux-x64;any</ToolPackageRuntimeIdentifiers>
     <TreatSpecificWarningsAsErrors />
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <UseSystemResourceKeys>true</UseSystemResourceKeys>
     <ValidateExecutableReferencesMatchSelfContained>true</ValidateExecutableReferencesMatchSelfContained>
     <WarningsAsErrors />
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Selects NuGet's System.Text.Json deserializers so the trimmer can remove the Newtonsoft.Json reflection paths -->
+    <RuntimeHostConfigurationOption Include="NuGet.UseSystemTextJsonDeserialization" Value="true" Trim="true" />
+  </ItemGroup>
+  <PropertyGroup Condition="'$(RuntimeIdentifier)' == 'any'">
+    <!-- The any fallback package is framework-dependent IL for every platform without a native package -->
+    <PublishAot>false</PublishAot>
   </PropertyGroup>
   <ItemGroup>
     <!-- error NU1903: Warning As Error: Package 'System.Private.Uri' 4.3.0 has a known high severity vulnerability -->
@@ -70,9 +79,9 @@
     <ProjectReference Include="../Credfeto.Package/Credfeto.Package.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="CommandLineParser" Version="2.9.1" IncludeAssets="compile;runtime" />
     <PackageReference Include="Credfeto.Enumeration.Source.Generation.Attributes" Version="1.2.129.1430" IncludeAssets="compile;runtime" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.9" IncludeAssets="compile;runtime" />
+    <PackageReference Include="System.CommandLine" Version="3.0.0" IncludeAssets="compile;runtime" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="AsyncFixer" Version="1.6.0" PrivateAssets="All" ExcludeAssets="runtime" />
