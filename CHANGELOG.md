@@ -19,9 +19,13 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 ### Changed
 - SDK - Updated DotNet SDK to 11.0.100
 - Target .NET 11.0 exclusively with runtime async enabled for all projects, pinned to SDK 11.0.100-rc.3.26522.148, and remove the redundant Microsoft.Extensions.Logging.Abstractions PackageReference
-- TBD - to be finalized after review
+- Command-line parsing replaced with System.CommandLine 3.0.0: --help and --version now exit successfully, and invalid arguments report the actual parse error
+- updatepackages is now published as a trimmed native AOT executable for linux-x64, with a platform-independent fallback tool package for other platforms
+- Dependencies - Updated NuGet.Protocol to 8.0.0 and pinned System.Security.Cryptography.Pkcs to 11.0.0 to address known vulnerabilities in the transitive version
 ### Deprecated
 ### Removed
+- CommandLineParser dependency removed from the tool
+- Tool packages for win-x64, win-arm64, osx-x64, osx-arm64 and linux-arm64 are no longer published; only linux-x64 and a platform-independent package are provided
 ### Deployment Changes
 
 <!--
