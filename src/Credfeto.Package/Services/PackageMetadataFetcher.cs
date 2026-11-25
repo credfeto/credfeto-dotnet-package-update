@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Credfeto.Package.Exceptions;
 using NuGet.Common;
 using NuGet.Protocol.Core.Types;
 
@@ -18,7 +19,10 @@ public sealed class PackageMetadataFetcher : IPackageMetadataFetcher
     {
         PackageMetadataResource metadataResource = await sourceRepository.GetResourceAsync<PackageMetadataResource>(
             cancellationToken
-        );
+        )
+            ?? throw new UpdateFailedException(
+                $"Package source {sourceRepository.PackageSource.Source} does not provide package metadata"
+            );
 
         using SourceCacheContext sourceCacheContext = new();
 

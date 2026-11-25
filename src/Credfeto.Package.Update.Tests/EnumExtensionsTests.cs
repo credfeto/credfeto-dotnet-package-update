@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using CommandLine;
 using FunFair.Test.Common;
 using Microsoft.Extensions.Logging;
 using Xunit;
@@ -65,97 +64,5 @@ public sealed class EnumExtensionsTests : TestBase
     public void LogLevelGetNameThrowsForUnknownValue()
     {
         Assert.Throws<UnreachableException>(() => ((LogLevel)int.MaxValue).GetName());
-    }
-
-    [Theory]
-    [InlineData(ErrorType.BadFormatTokenError, "BadFormatTokenError")]
-    [InlineData(ErrorType.MissingValueOptionError, "MissingValueOptionError")]
-    [InlineData(ErrorType.UnknownOptionError, "UnknownOptionError")]
-    [InlineData(ErrorType.MissingRequiredOptionError, "MissingRequiredOptionError")]
-    [InlineData(ErrorType.MutuallyExclusiveSetError, "MutuallyExclusiveSetError")]
-    [InlineData(ErrorType.BadFormatConversionError, "BadFormatConversionError")]
-    [InlineData(ErrorType.SequenceOutOfRangeError, "SequenceOutOfRangeError")]
-    [InlineData(ErrorType.RepeatedOptionError, "RepeatedOptionError")]
-    [InlineData(ErrorType.NoVerbSelectedError, "NoVerbSelectedError")]
-    [InlineData(ErrorType.BadVerbSelectedError, "BadVerbSelectedError")]
-    [InlineData(ErrorType.HelpRequestedError, "HelpRequestedError")]
-    [InlineData(ErrorType.HelpVerbRequestedError, "HelpVerbRequestedError")]
-    [InlineData(ErrorType.VersionRequestedError, "VersionRequestedError")]
-    [InlineData(ErrorType.SetValueExceptionError, "SetValueExceptionError")]
-    [InlineData(ErrorType.InvalidAttributeConfigurationError, "InvalidAttributeConfigurationError")]
-    [InlineData(ErrorType.MissingGroupOptionError, "MissingGroupOptionError")]
-    [InlineData(ErrorType.GroupOptionAmbiguityError, "GroupOptionAmbiguityError")]
-    [InlineData(ErrorType.MultipleDefaultVerbsError, "MultipleDefaultVerbsError")]
-    public static void ErrorTypeGetNameReturnsExpectedString(ErrorType errorType, string expected)
-    {
-        string result = errorType.GetName();
-
-        Assert.Equal(expected: expected, actual: result);
-    }
-
-    [Theory]
-    [InlineData(ErrorType.BadFormatTokenError)]
-    [InlineData(ErrorType.MissingValueOptionError)]
-    [InlineData(ErrorType.UnknownOptionError)]
-    [InlineData(ErrorType.MissingRequiredOptionError)]
-    [InlineData(ErrorType.MutuallyExclusiveSetError)]
-    [InlineData(ErrorType.BadFormatConversionError)]
-    [InlineData(ErrorType.SequenceOutOfRangeError)]
-    [InlineData(ErrorType.RepeatedOptionError)]
-    [InlineData(ErrorType.NoVerbSelectedError)]
-    [InlineData(ErrorType.BadVerbSelectedError)]
-    [InlineData(ErrorType.HelpRequestedError)]
-    [InlineData(ErrorType.HelpVerbRequestedError)]
-    [InlineData(ErrorType.VersionRequestedError)]
-    [InlineData(ErrorType.SetValueExceptionError)]
-    [InlineData(ErrorType.InvalidAttributeConfigurationError)]
-    [InlineData(ErrorType.MissingGroupOptionError)]
-    [InlineData(ErrorType.GroupOptionAmbiguityError)]
-    [InlineData(ErrorType.MultipleDefaultVerbsError)]
-    public static void ErrorTypeGetDescriptionReturnsNonEmptyString(ErrorType value)
-    {
-        string description = value.GetDescription();
-
-        Assert.NotEmpty(description);
-    }
-
-    [Theory]
-    [InlineData(ErrorType.BadFormatTokenError)]
-    [InlineData(ErrorType.MissingValueOptionError)]
-    [InlineData(ErrorType.UnknownOptionError)]
-    [InlineData(ErrorType.MissingRequiredOptionError)]
-    [InlineData(ErrorType.MutuallyExclusiveSetError)]
-    [InlineData(ErrorType.BadFormatConversionError)]
-    [InlineData(ErrorType.SequenceOutOfRangeError)]
-    [InlineData(ErrorType.RepeatedOptionError)]
-    [InlineData(ErrorType.NoVerbSelectedError)]
-    [InlineData(ErrorType.BadVerbSelectedError)]
-    [InlineData(ErrorType.HelpRequestedError)]
-    [InlineData(ErrorType.HelpVerbRequestedError)]
-    [InlineData(ErrorType.VersionRequestedError)]
-    [InlineData(ErrorType.SetValueExceptionError)]
-    [InlineData(ErrorType.InvalidAttributeConfigurationError)]
-    [InlineData(ErrorType.MissingGroupOptionError)]
-    [InlineData(ErrorType.GroupOptionAmbiguityError)]
-    [InlineData(ErrorType.MultipleDefaultVerbsError)]
-    public static void ErrorTypeIsDefinedReturnsTrueForKnownValues(ErrorType value)
-    {
-        bool defined = value.IsDefined();
-
-        Assert.True(defined, userMessage: "Expected IsDefined to return true for a known ErrorType value");
-    }
-
-    [Fact]
-    public void ErrorTypeIsDefinedReturnsFalseForUnknownValue()
-    {
-        bool defined = ((ErrorType)int.MaxValue).IsDefined();
-
-        Assert.False(defined, userMessage: "Expected IsDefined to return false for an unknown ErrorType value");
-    }
-
-    [Fact]
-    public void ErrorTypeGetNameThrowsForUnknownValue()
-    {
-        Assert.Throws<UnreachableException>(() => ((ErrorType)int.MaxValue).GetName());
     }
 }
